@@ -1,3 +1,5 @@
 .env
 .DS_Store
 serviceAccountKey.json
+node_modules
+junctionx-hackathon-firebase-adminsdk-fbsvc-b9ad2c64f0.json
