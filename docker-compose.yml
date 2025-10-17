@@ -7,10 +7,24 @@ services:
     ports:
       - "6379:6379"
 
+  backend:
+    build: ./backend
+    container_name: backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/code
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+
   worker:
     build: ./backend
     container_name: celery_worker
-    command: celery -A app.tasks worker --loglevel=info
+    command: celery -A core.tasks.celery_tasks.celery_app worker --loglevel=info
     volumes:
       - ./backend:/code
     environment:
