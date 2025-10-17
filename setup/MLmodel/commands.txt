@@ -11,3 +11,31 @@ git lfs install
 
 huggingface-cli login
 
+# Uploading the model to HuggingFace
+
+git clone https://huggingface.co/your-username/forest-guardian-yolov8-seg
+cd forest-guardian-yolov8-seg
+
+# Copy model files into repo
+cp /path/to/runs/train/weights/best.pt .
+
+git add .
+git commit -m "Add YOLOv8-seg model"
+git push
+
+
+# Receiving data from model
+
+import requests
+
+API_URL = "https://api-inference.huggingface.co/models/your-username/forest-guardian-yolov8-seg"
+headers = {"Authorization": f"Bearer {YOUR_HF_API_TOKEN}"}
+
+def query(image_path):
+    with open(image_path, "rb") as f:
+        data = f.read()
+    response = requests.post(API_URL, headers=headers, data=data)
+    return response.json()
+
+result = query("test_image.jpg")
+print(result)
