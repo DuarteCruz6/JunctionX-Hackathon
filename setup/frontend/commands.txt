@@ -1,0 +1,17 @@
+# Create React app
+npx create-react-app frontend
+cd frontend
+
+# Install Tailwind
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+
+# Tailwind config (tailwind.config.js)
+module.exports = {
+  content: ["./src/**/*.{js,jsx,ts,tsx}"],
+  theme: { extend: {} },
+  plugins: [],
+}
+
+# Install React Query
+npm install @tanstack/react-query axios

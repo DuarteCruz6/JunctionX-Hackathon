@@ -39,3 +39,18 @@ def query(image_path):
 
 result = query("test_image.jpg")
 print(result)
+
+# Hugging Face API Integration
+# backend/app/utils/hf.py
+import requests
+import os
+
+HF_API_URL = "https://api-inference.huggingface.co/models/your-username/forest-guardian-yolov8-seg"
+HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+
+def run_inference(image_path):
+    headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
+    with open(image_path, "rb") as f:
+        data = f.read()
+    response = requests.post(HF_API_URL, headers=headers, data=data)
+    return response.json()

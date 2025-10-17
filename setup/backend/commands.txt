@@ -1,0 +1,75 @@
+# Create project folder
+cd backend/app
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Firebase Auth Setup
+# backend/app/utils/firebase.py
+import firebase_admin
+from firebase_admin import credentials, auth
+
+cred = credentials.Certificate("serviceAccountKey.json")
+firebase_admin.initialize_app(cred)
+
+def verify_token(id_token):
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        return decoded_token
+    except Exception:
+        return None
+
+# AWS S3 Setup
+import boto3
+import os
+
+s3 = boto3.client(
+    "s3",
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    region_name="us-east-1"
+)
+
+def upload_image(file_path, key):
+    s3.upload_file(file_path, "my-bucket", key)
+    return f"https://my-bucket.s3.amazonaws.com/{key}"
+
+# Celery + Redis
+
+# backend/app/tasks.py
+from celery import Celery
+from .utils.hf import run_inference
+
+celery_app = Celery("tasks", broker="redis://localhost:6379/0")
+
+@celery_app.task
+def process_image(image_path):
+    result_url = run_inference(image_path)
+    return result_url
+
+to run worker: celery -A tasks.celery_app worker --loglevel=info
+
+# Initialize Firebase in your backend
+
+# backend/app/utils/firebase.py
+import firebase_admin
+from firebase_admin import credentials, firestore, auth
+
+# Initialize Firebase app
+cred = credentials.Certificate("serviceAccountKey.json")
+firebase_admin.initialize_app(cred)
+
+# Firestore client
+db = firestore.client()
+
+# Verify user token
+def verify_token(id_token):
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        return decoded_token
+    except Exception as e:
+        print("Firebase token verification failed:", e)
+        return None
