@@ -1,0 +1,12 @@
+This folder will contain all the Frontend tests (if we have time to create)
+
+ChatGPT:
+
+    Purpose: Test React components, pages, and API calls.
+
+    Examples:
+        App.test.js → check if main app renders without crashing.
+        UploadComponent.test.js → check if image upload works and shows a loader
+        ApiService.test.js → test mock API calls to backend.
+
+    Tools: Jest + React Testing Library is standard for React.

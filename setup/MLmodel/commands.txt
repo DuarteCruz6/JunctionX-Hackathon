@@ -1,0 +1,13 @@
+# Prerequisites
+
+pip install huggingface_hub
+pip install ultralytics
+
+# Optional - this is for large model files
+git lfs install
+
+
+# Login 
+
+huggingface-cli login
+

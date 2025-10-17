@@ -1,0 +1,13 @@
+This folder will contain all the tests for testing our Backend (if we have enough time to create)
+
+ChatGPT:
+
+    Purpose: Test your FastAPI endpoints, business logic, ML integration, and async tasks.
+
+    Examples:
+        test_routes.py → check if endpoints return the correct status and response.
+        test_ml_model.py → verify the Hugging Face model API call returns expected outputs.
+        test_tasks.py → check Celery tasks run correctly.
+        test_utils.py → test helper functions.
+
+    Tools: pytest is the most common for Python.
