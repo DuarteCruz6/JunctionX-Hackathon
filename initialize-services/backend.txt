@@ -1,0 +1,8 @@
+# Activate venv first
+uvicorn app.main:app --reload
+
+# Start Redis server
+redis-server
+
+# Start Celery worker
+celery -A app.tasks.celery_app worker --loglevel=info

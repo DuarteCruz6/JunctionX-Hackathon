@@ -1,0 +1,37 @@
+# install dependencies
+cd frontend
+npm install
+
+## Tailwind setup (if not done)
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+
+
+## Edit tailwind.config.js:
+
+module.exports = {
+  content: ["./src/**/*.{js,jsx,ts,tsx}"],
+  theme: { extend: {} },
+  plugins: [],
+}
+
+## React Query & Axios
+npm install @tanstack/react-query axios
+
+## Firebase Setup - Add Firebase config in frontend/src/firebaseConfig.js:
+
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export default app;
