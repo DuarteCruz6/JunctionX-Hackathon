@@ -43,6 +43,56 @@ The goal is to provide a scalable, fast, and interactive tool for forest monitor
 5. Backend saves the results to S3.
 6. Frontend fetches results and displays segmented Acacia regions interactively.
 
+## ML Pipeline
+
+[Satellite / Drone / LiDAR Data] 
+       │
+       │  (preprocessing)
+       ▼
++---------------------------+
+|   Data Alignment & Fusion |
+|   - Resample Sentinel-2  |
+|   - Process LiDAR/DEM    |
+|   - Combine spectral +   |
+|     structural channels  |
++---------------------------+
+       │
+       │  (ML Inference)
+       ▼
++---------------------------+
+|    YOLOv8-Seg Model       |
+|   - Input: preprocessed   |
+|     imagery               |
+|   - Output: segmentation  |
+|     masks & confidence    |
++---------------------------+
+       │
+       │  (Postprocessing)
+       ▼
++---------------------------+
+|  Geo-referenced Outputs   |
+|   - Masked imagery        |
+|   - Coverage stats        |
+|   - GeoJSON polygons      |
++---------------------------+
+       │
+       │  (Temporal Tracking)
+       ▼
++---------------------------+
+|   Time Series Analysis    |
+|   - Compare with past     |
+|     images                |
+|   - Detect spread/growth  |
+|   - Update prediction map |
++---------------------------+
+       │
+       ▼
+[Frontend / Dashboard / Map Visualization]
+- Interactive maps (Leaflet / Mapbox)
+- Confidence overlays
+- User queries by date & region
+
+
 ## Tech Stack
 
 - **Frontend:** React, Tailwind, React Query  
