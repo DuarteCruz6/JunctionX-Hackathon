@@ -1,4 +1,5 @@
 import React from 'react';
+import PhotoNavigation from '../ui/PhotoNavigation';
 
 const Demo = ({
   selectedImages,
@@ -12,6 +13,8 @@ const Demo = ({
   onProcessImages,
   onClearAll,
   onNavigateResult,
+  onNavigateBySeven,
+  onNavigateToIndex,
   onEditNumber,
   onSaveNumber,
   onEditInputChange,
@@ -184,51 +187,8 @@ const Demo = ({
             
             {processedResults.length > 0 ? (
               <div className="space-y-8">
-                {/* Navigation Header */}
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => onNavigateResult('prev')}
-                      className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    
-                    <div className="flex items-center space-x-1">
-                      <span className="text-slate-300"></span>
-                      {isEditingNumber ? (
-                        <input
-                          type="text"
-                          value={editNumber}
-                          onChange={onEditInputChange}
-                          onKeyPress={onEditKeyPress}
-                          onBlur={onSaveNumber}
-                          className="w-8 px-1 py-1 bg-slate-700 border border-emerald-500 rounded text-white text-sm text-center focus:outline-none"
-                          autoFocus
-                        />
-                      ) : (
-                        <button
-                          onClick={onEditNumber}
-                          className="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-white text-sm transition-colors cursor-pointer"
-                        >
-                          {currentResultIndex + 1}
-                        </button>
-                      )}
-                      <span className="text-slate-300"> of {processedResults.length}</span>
-                    </div>
-                    
-                    <button
-                      onClick={() => onNavigateResult('next')}
-                      className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                  
+                {/* Top Info Bar */}
+                <div className="flex justify-end items-center">
                   <div className="flex items-center space-x-4">
                     <div className="text-sm text-slate-400">
                       Confidence: {(processedResults[currentResultIndex]?.confidence * 100).toFixed(1)}%
@@ -302,6 +262,18 @@ const Demo = ({
                   {/* Output Image - Main Display */}
                   <div className="xl:col-span-4">
                     <h4 className="text-lg font-semibold text-white mb-4">AI Analysis Result</h4>
+                    
+                    {/* Navigation Above Image */}
+                    <div className="flex justify-center mb-6">
+                      <PhotoNavigation
+                        processedResults={processedResults}
+                        currentResultIndex={currentResultIndex}
+                        onNavigateResult={onNavigateResult}
+                        onNavigateBySeven={onNavigateBySeven}
+                        onNavigateToIndex={onNavigateToIndex}
+                      />
+                    </div>
+                    
                     <div className="relative h-[70vh] overflow-hidden flex items-center justify-center">
                       <img
                         src={processedResults[currentResultIndex]?.outputImage}

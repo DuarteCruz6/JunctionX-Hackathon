@@ -122,6 +122,8 @@ const AcaciaSearch = () => {
           onProcessImages={imageProcessing.handleProcessImages}
           onClearAll={imageProcessing.handleClearAll}
           onNavigateResult={imageProcessing.navigateResult}
+          onNavigateBySeven={imageProcessing.navigateBySeven}
+          onNavigateToIndex={imageProcessing.navigateToIndex}
           onEditNumber={imageProcessing.handleEditNumber}
           onSaveNumber={imageProcessing.handleSaveNumber}
           onEditInputChange={imageProcessing.handleEditInputChange}

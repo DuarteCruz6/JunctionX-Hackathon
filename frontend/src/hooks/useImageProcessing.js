@@ -238,9 +238,29 @@ export const useImageProcessing = () => {
 
   const navigateResult = (direction) => {
     if (direction === 'prev') {
-      setCurrentResultIndex(prev => prev > 0 ? prev - 1 : processedResults.length - 1);
+      setCurrentResultIndex(prev => prev > 0 ? prev - 1 : prev);
     } else {
-      setCurrentResultIndex(prev => prev < processedResults.length - 1 ? prev + 1 : 0);
+      setCurrentResultIndex(prev => prev < processedResults.length - 1 ? prev + 1 : prev);
+    }
+  };
+
+  const navigateBySeven = (direction) => {
+    if (direction === 'prev') {
+      setCurrentResultIndex(prev => {
+        const newIndex = prev - 7;
+        return newIndex >= 0 ? newIndex : 0;
+      });
+    } else {
+      setCurrentResultIndex(prev => {
+        const newIndex = prev + 7;
+        return newIndex < processedResults.length ? newIndex : processedResults.length - 1;
+      });
+    }
+  };
+
+  const navigateToIndex = (index) => {
+    if (index >= 0 && index < processedResults.length) {
+      setCurrentResultIndex(index);
     }
   };
 
@@ -303,6 +323,8 @@ export const useImageProcessing = () => {
     handleProcessImages,
     handleClearAll,
     navigateResult,
+    navigateBySeven,
+    navigateToIndex,
     downloadImage,
     handleEditNumber,
     handleSaveNumber,
