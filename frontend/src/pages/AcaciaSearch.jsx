@@ -172,7 +172,7 @@ const AcaciaSearch = () => {
       {/* Upload Loading Spinner */}
       <LoadingSpinner 
         isOpen={imageProcessing.isUploading}
-        message="Uploading images to our server..."
+        message="Uploading images..."
       />
     </div>
   );
