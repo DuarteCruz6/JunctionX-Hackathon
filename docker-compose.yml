@@ -18,6 +18,12 @@ services:
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # Add default values for required environment variables
+      - HF_API_TOKEN=${HF_API_TOKEN:-dummy_token}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-dummy_key}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-dummy_secret}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET:-dummy_bucket}
+      - FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS:-dummy_creds}
     depends_on:
       - redis
 
@@ -32,5 +38,11 @@ services:
       # communicate using their service names inside the Docker network.
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # Add default values for required environment variables
+      - HF_API_TOKEN=${HF_API_TOKEN:-dummy_token}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-dummy_key}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-dummy_secret}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET:-dummy_bucket}
+      - FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS:-dummy_creds}
     depends_on:
       - redis

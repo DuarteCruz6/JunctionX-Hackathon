@@ -1,14 +1,18 @@
-fastapi
-uvicorn[standard]
-firebase-admin
-boto3
-requests
-huggingface_hub
-ultralytics
-torch
-opencv-python-headless
-numpy
-python-dotenv
-celery  # optional
-redis   # optional
-Pillow
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+firebase-admin==6.2.0
+boto3==1.34.0
+requests==2.31.0
+huggingface_hub==0.19.4
+ultralytics==8.0.196
+torch==2.1.0
+torchvision==0.16.0
+opencv-python-headless==4.8.1.78
+numpy==1.24.3
+python-dotenv==1.0.0
+celery==5.3.4
+redis==5.0.1
+Pillow==10.1.0
+PyYAML==6.0.1
+python-multipart==0.0.6
+aiofiles==23.2.1
