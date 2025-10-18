@@ -14,127 +14,215 @@ export const useImageProcessing = () => {
 
   const handleFileChange = async (event) => {
     const files = Array.from(event.target.files);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/tiff'];
+    const maxSize = 50 * 1024 * 1024; // 50MB
     
-    if (imageFiles.length === 0) return;
-    
-    setIsUploading(true);
-    setUploadError(null);
-    
-    try {
-      // Actually upload images to backend
-      const uploadResponse = await uploadImages(imageFiles);
+    // Filter valid image files
+    const validFiles = files.filter(file => {
+      const isValidType = allowedTypes.includes(file.type);
+      const isValidSize = file.size <= maxSize;
       
-      if (uploadResponse.success && uploadResponse.results) {
-        // Create preview URLs and store upload results
-        const imagePreviews = imageFiles.map((file, index) => ({
-          file,
-          preview: URL.createObjectURL(file),
-          name: file.name,
-          imageId: uploadResponse.results[index]?.image_id,
-          s3Url: uploadResponse.results[index]?.s3_url,
-          uploadDate: uploadResponse.results[index]?.date
-        }));
-        
-        setSelectedImages(imagePreviews);
-        console.log('Images uploaded successfully:', uploadResponse.results);
-      } else {
-        throw new Error('Upload failed: Invalid response from server');
+      if (!isValidType) {
+        console.warn(`Invalid file type: ${file.name} (${file.type})`);
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      setUploadError(`Upload failed: ${error.message}`);
+      if (!isValidSize) {
+        console.warn(`File too large: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+      }
       
-      // Still create previews for user to see what they selected
-      const imagePreviews = imageFiles.map(file => ({
-        file,
-        preview: URL.createObjectURL(file),
-        name: file.name,
-        uploadError: true
-      }));
+      return isValidType && isValidSize;
+    });
+    
+    // Show error for invalid files
+    const invalidFiles = files.filter(file => {
+      const isValidType = allowedTypes.includes(file.type);
+      const isValidSize = file.size <= maxSize;
+      return !isValidType || !isValidSize;
+    });
+    
+    if (invalidFiles.length > 0) {
+      const formatErrors = invalidFiles.filter(file => !allowedTypes.includes(file.type));
+      const sizeErrors = invalidFiles.filter(file => file.size > maxSize);
       
-      setSelectedImages(imagePreviews);
-    } finally {
-      setIsUploading(false);
-      // Reset the input so it can be used again
-      event.target.value = '';
+      let errorMessage = '';
+      if (formatErrors.length > 0) {
+        errorMessage += `Invalid file format(s): Only JPG, PNG, and TIFF files are supported.\n`;
+        errorMessage += `Files with unsupported formats: ${formatErrors.map(f => f.name).join(', ')}\n`;
+      }
+      if (sizeErrors.length > 0) {
+        errorMessage += `File(s) too large: Maximum file size is 50MB.\n`;
+        errorMessage += `Large files: ${sizeErrors.map(f => `${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join(', ')}`;
+      }
+      
+      setUploadError(errorMessage.trim());
     }
+    
+    if (validFiles.length === 0) {
+      if (invalidFiles.length > 0) {
+        // Don't clear existing images if we have invalid files
+        return;
+      }
+      return;
+    }
+    
+    // Just create preview URLs for selected images, don't upload yet
+    const imagePreviews = validFiles.map(file => ({
+      file,
+      preview: URL.createObjectURL(file),
+      name: file.name,
+      uploaded: false // Track if this image has been uploaded
+    }));
+    
+    setSelectedImages(imagePreviews);
+    if (invalidFiles.length === 0) {
+      setUploadError(null);
+    }
+    // Reset the input so it can be used again
+    event.target.value = '';
   };
 
   const handleAddMoreFiles = async (event) => {
     const files = Array.from(event.target.files);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/tiff'];
+    const maxSize = 50 * 1024 * 1024; // 50MB
     
-    if (imageFiles.length === 0) return;
-    
-    setIsUploading(true);
-    setUploadError(null);
-    
-    try {
-      // Actually upload images to backend
-      const uploadResponse = await uploadImages(imageFiles);
+    // Filter valid image files
+    const validFiles = files.filter(file => {
+      const isValidType = allowedTypes.includes(file.type);
+      const isValidSize = file.size <= maxSize;
       
-      if (uploadResponse.success && uploadResponse.results) {
-        // Create preview URLs for new images
-        const newImagePreviews = imageFiles.map((file, index) => ({
-          file,
-          preview: URL.createObjectURL(file),
-          name: file.name,
-          imageId: uploadResponse.results[index]?.image_id,
-          s3Url: uploadResponse.results[index]?.s3_url,
-          uploadDate: uploadResponse.results[index]?.date
-        }));
-        
-        // Add new images to existing ones
-        setSelectedImages(prev => [...prev, ...newImagePreviews]);
-        console.log('Additional images uploaded successfully:', uploadResponse.results);
-      } else {
-        throw new Error('Upload failed: Invalid response from server');
+      if (!isValidType) {
+        console.warn(`Invalid file type: ${file.name} (${file.type})`);
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      setUploadError(`Upload failed: ${error.message}`);
+      if (!isValidSize) {
+        console.warn(`File too large: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+      }
       
-      // Still create previews for user to see what they selected
-      const newImagePreviews = imageFiles.map(file => ({
-        file,
-        preview: URL.createObjectURL(file),
-        name: file.name,
-        uploadError: true
-      }));
+      return isValidType && isValidSize;
+    });
+    
+    // Show error for invalid files
+    const invalidFiles = files.filter(file => {
+      const isValidType = allowedTypes.includes(file.type);
+      const isValidSize = file.size <= maxSize;
+      return !isValidType || !isValidSize;
+    });
+    
+    if (invalidFiles.length > 0) {
+      const formatErrors = invalidFiles.filter(file => !allowedTypes.includes(file.type));
+      const sizeErrors = invalidFiles.filter(file => file.size > maxSize);
       
-      // Add new images to existing ones even if upload failed
-      setSelectedImages(prev => [...prev, ...newImagePreviews]);
-    } finally {
-      setIsUploading(false);
-      // Reset the input so it can be used again
-      event.target.value = '';
+      let errorMessage = '';
+      if (formatErrors.length > 0) {
+        errorMessage += `Invalid file format(s): Only JPG, PNG, and TIFF files are supported.\n`;
+        errorMessage += `Files with unsupported formats: ${formatErrors.map(f => f.name).join(', ')}\n`;
+      }
+      if (sizeErrors.length > 0) {
+        errorMessage += `File(s) too large: Maximum file size is 50MB.\n`;
+        errorMessage += `Large files: ${sizeErrors.map(f => `${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join(', ')}`;
+      }
+      
+      setUploadError(errorMessage.trim());
     }
+    
+    if (validFiles.length === 0) {
+      if (invalidFiles.length > 0) {
+        // Don't clear existing images if we have invalid files
+        return;
+      }
+      return;
+    }
+    
+    // Just create preview URLs for new images, don't upload yet
+    const newImagePreviews = validFiles.map(file => ({
+      file,
+      preview: URL.createObjectURL(file),
+      name: file.name,
+      uploaded: false // Track if this image has been uploaded
+    }));
+    
+    // Add new images to existing ones
+    setSelectedImages(prev => [...prev, ...newImagePreviews]);
+    if (invalidFiles.length === 0) {
+      setUploadError(null);
+    }
+    // Reset the input so it can be used again
+    event.target.value = '';
   };
 
   const handleProcessImages = async () => {
     setIsLoading(true);
+    setIsUploading(false);
+    setUploadError(null);
     
-    // Simulate processing delay (2-4 seconds)
-    const processingTime = Math.random() * 2000 + 2000; // 2-4 seconds
-    
-    await new Promise(resolve => setTimeout(resolve, processingTime));
-    
-    // Simulate processing results with mock data
-    const mockResults = selectedImages.map((image, index) => ({
-      id: index,
-      inputImage: image.preview,
-      inputName: image.name,
-      outputImage: image.preview, // In real implementation, this would be the processed result
-      outputName: `processed_${image.name}`,
-      confidence: Math.random() * 0.3 + 0.7, // Random confidence between 0.7-1.0
-      detectedAreas: Math.floor(Math.random() * 5) + 1, // Random detected areas 1-5
-      processingTime: Math.floor(Math.random() * 3) + 1 // Random processing time 1-3 seconds
-    }));
-    
-    setProcessedResults(mockResults);
-    setCurrentResultIndex(0);
-    setIsLoading(false);
+    try {
+      // First, upload all selected images that haven't been uploaded yet
+      const imagesToUpload = selectedImages.filter(img => !img.uploaded);
+      
+      if (imagesToUpload.length > 0) {
+        setIsUploading(true);
+        console.log(`Uploading ${imagesToUpload.length} images...`);
+        
+        const filesToUpload = imagesToUpload.map(img => img.file);
+        const uploadResponse = await uploadImages(filesToUpload);
+        
+        if (uploadResponse.success && uploadResponse.results) {
+          // Update the selected images with upload results
+          setSelectedImages(prev => {
+            const updatedImages = [...prev];
+            let uploadIndex = 0;
+            
+            updatedImages.forEach((img, index) => {
+              if (!img.uploaded) {
+                const uploadResult = uploadResponse.results[uploadIndex];
+                updatedImages[index] = {
+                  ...img,
+                  uploaded: true,
+                  imageId: uploadResult?.image_id,
+                  s3Url: uploadResult?.s3_url,
+                  uploadDate: uploadResult?.date
+                };
+                uploadIndex++;
+              }
+            });
+            
+            return updatedImages;
+          });
+          
+          console.log('Images uploaded successfully:', uploadResponse.results);
+        } else {
+          throw new Error('Upload failed: Invalid response from server');
+        }
+        
+        setIsUploading(false);
+      }
+      
+      // Now simulate processing delay (2-4 seconds)
+      const processingTime = Math.random() * 2000 + 2000; // 2-4 seconds
+      await new Promise(resolve => setTimeout(resolve, processingTime));
+      
+      // Create mock processing results
+      const mockResults = selectedImages.map((image, index) => ({
+        id: index,
+        inputImage: image.preview,
+        inputName: image.name,
+        outputImage: image.preview, // In real implementation, this would be the processed result
+        outputName: `processed_${image.name}`,
+        confidence: Math.random() * 0.3 + 0.7, // Random confidence between 0.7-1.0
+        detectedAreas: Math.floor(Math.random() * 5) + 1, // Random detected areas 1-5
+        processingTime: Math.floor(Math.random() * 3) + 1 // Random processing time 1-3 seconds
+      }));
+      
+      setProcessedResults(mockResults);
+      setCurrentResultIndex(0);
+      
+    } catch (error) {
+      console.error('Process error:', error);
+      setUploadError(`Processing failed: ${error.message}`);
+      // Ensure all loading states are reset on error
+      setIsUploading(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleClearAll = () => {
@@ -145,6 +233,7 @@ export const useImageProcessing = () => {
     setSelectedImages([]);
     setProcessedResults([]);
     setCurrentResultIndex(0);
+    setUploadError(null);
   };
 
   const navigateResult = (direction) => {

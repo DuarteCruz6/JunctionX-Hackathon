@@ -19,16 +19,16 @@ def extract_image_date(file_content: bytes, filename: str) -> datetime:
             exif_data = img.getexif()
 
         if not exif_data:
-            logger.info(f"No EXIF data found for {filename}")
+            logger.debug(f"No EXIF data found for {filename}")
         else:
             # Map EXIF numeric tags to names
             exif = {TAGS.get(k, str(k)): v for k, v in exif_data.items()}
-            logger.info(f"Available EXIF tags for {filename}: {list(exif.keys())}")
+            logger.debug(f"Available EXIF tags for {filename}: {list(exif.keys())}")
 
             # Search for any key containing 'Date' or 'Time'
             for k, v in exif.items():
                 if isinstance(v, (bytes, str)) and re.search(r"date|time", str(k), re.IGNORECASE):
-                    logger.info(f"Candidate tag: {k} = {v}")
+                    logger.debug(f"Candidate tag: {k} = {v}")
 
             # Check typical date tags
             for tag in ["DateTimeOriginal", "DateTimeDigitized", "DateTime"]:
@@ -66,7 +66,7 @@ def extract_image_date(file_content: bytes, filename: str) -> datetime:
             logger.warning(f"Unrecognized EXIF date format: {exif_date}")
 
     except Exception as e:
-        logger.warning(f"Failed to read EXIF for {filename}: {e}")
+        logger.debug(f"Failed to read EXIF for {filename}: {e}")
 
     # --- Try to extract from filename ---
     filename_lower = filename.lower()
@@ -80,8 +80,15 @@ def extract_image_date(file_content: bytes, filename: str) -> datetime:
                 groups = match.groups()
                 if len(groups[0]) == 4:  # YYYY-MM-DD
                     y, m, d = map(int, groups)
+                    # Validate reasonable date ranges
+                    if not (1900 <= y <= 2100 and 1 <= m <= 12 and 1 <= d <= 31):
+                        continue
                 else:  # DD-MM-YYYY
                     d, m, y = map(int, groups)
+                    # Validate reasonable date ranges
+                    if not (1900 <= y <= 2100 and 1 <= m <= 12 and 1 <= d <= 31):
+                        continue
+                
                 dt = datetime(y, m, d)
                 logger.info(f"Extracted date from filename: {dt}")
                 return dt
@@ -90,5 +97,5 @@ def extract_image_date(file_content: bytes, filename: str) -> datetime:
 
     # --- Fallback: current time ---
     fallback = datetime.now()
-    logger.warning(f"No valid date found for {filename}, using current timestamp: {fallback}")
+    logger.info(f"No date metadata found for {filename}, using current timestamp: {fallback}")
     return fallback

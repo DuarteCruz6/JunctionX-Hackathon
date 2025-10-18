@@ -49,7 +49,7 @@ const Demo = ({
                       <div>
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/jpeg,image/png,image/tiff"
                           multiple
                           className="hidden"
                           id="add-more-files"
@@ -105,26 +105,39 @@ const Demo = ({
                   </div>
                   {uploadError && (
                     <div className="mb-4 p-4 bg-red-900/50 border border-red-500/50 rounded-lg">
-                      <div className="flex items-center">
-                        <svg className="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="flex items-start">
+                        <svg className="w-5 h-5 text-red-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <p className="text-red-400 text-sm">{uploadError}</p>
+                        <div className="flex-1">
+                          <h4 className="text-red-400 font-semibold mb-2">File Upload Error</h4>
+                          <div className="text-red-300 text-sm whitespace-pre-line">
+                            {uploadError}
+                          </div>
+                          <div className="mt-3 text-xs text-red-400">
+                            💡 <strong>Tip:</strong> Please select only JPG, PNG, or TIFF files under 50MB each.
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
                   <div className="text-center">
                     <button 
                       onClick={onProcessImages}
-                      disabled={isLoading}
+                      disabled={isLoading || isUploading}
                       className={`px-8 py-3 rounded-lg text-lg font-semibold transition-all transform ${
-                        isLoading 
+                        isLoading || isUploading
                           ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
                           : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-105'
                       }`}
                     >
-                      {isLoading ? 'Processing...' : 'Process All Images'}
+                      {isUploading ? 'Uploading Images...' : isLoading ? 'Processing...' : 'Upload & Process Images'}
                     </button>
+                    {selectedImages.length > 0 && (
+                      <p className="text-sm text-slate-400 mt-2">
+                        {selectedImages.filter(img => !img.uploaded).length} images ready to upload
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -135,12 +148,14 @@ const Demo = ({
                     </svg>
                   </div>
                   <h3 className="text-2xl font-semibold text-white mb-4">Upload Forest Images</h3>
-                  <p className="text-sm text-slate-400 mb-8">
-                    Supports JPG, PNG, TIFF formats up to 50MB each
-                  </p>
+                  <div className="text-sm text-slate-400 mb-8">
+                    <p className="mb-2">✅ <strong>Supported formats:</strong> JPG, PNG, TIFF</p>
+                    <p className="mb-2">📏 <strong>File size limit:</strong> 50MB per file</p>
+                    <p className="text-slate-500 text-xs">💡 Tip: Select multiple files at once for batch processing</p>
+                  </div>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/tiff"
                     multiple
                     className="hidden"
                     id="file-upload"
