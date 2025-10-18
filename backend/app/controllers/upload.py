@@ -8,6 +8,10 @@ from typing import Optional, List
 from PIL import Image
 import io
 import logging
+import re
+from datetime import datetime
+from PIL.ExifTags import TAGS as ExifTags
+from app.utils.date_extracter import extract_image_date
 
 # Setup basic logging
 logging.basicConfig(
@@ -18,7 +22,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
 
 @router.post("/upload")
 async def upload_images(
@@ -38,53 +41,33 @@ async def upload_images(
     """
     allowed_types = ["image/jpeg", "image/png", "image/tiff"]
     max_size = 50 * 1024 * 1024  # 50MB
-    error_files = []
-    results = []
+    error_files, results = [], []
 
     for file in files:
         logger.info(f"Processing file: {file.filename} (type: {file.content_type})")
+
         # Validate file type
         if file.content_type not in allowed_types:
-            logger.warning(f"File {file.filename} has unsupported type: {file.content_type}")
-            error_files.append({"filename": file.filename, "reason": f"File type {file.content_type} not supported."})
+            error_files.append({"filename": file.filename, "reason": f"Unsupported type: {file.content_type}"})
             continue
 
         file_content = await file.read()
         if len(file_content) > max_size:
-            logger.warning(f"File {file.filename} is too large: {len(file_content)} bytes")
-            error_files.append({"filename": file.filename, "reason": "File too large. Maximum size is 50MB."})
+            error_files.append({"filename": file.filename, "reason": "File too large (max 50MB)."})
             continue
 
         # Try to extract date from metadata
-        date_value = None
-        try:
-            image = Image.open(io.BytesIO(file_content))
-            exif_data = image.getexif()
-            # Common EXIF date tags
-            for tag in [36867, 306, 36868]:  # DateTimeOriginal, DateTime, DateTimeDigitized
-                if tag in exif_data:
-                    date_value = exif_data.get(tag)
-                    break
-        except Exception as ex:
-            logger.error(f"Failed to extract EXIF from {file.filename}: {ex}")
+        date_value = extract_image_date(file_content, file.filename)
+        logger.info(f"Final date value for {file.filename}: {date_value}")
 
-        if not date_value:
-            logger.warning(f"File {file.filename} missing date in metadata.")
-            error_files.append({"filename": file.filename, "reason": "Missing date in metadata."})
-            continue
-
+        # Upload and metadata
         try:
-            # Generate unique image ID
             image_id = str(uuid.uuid4())
-            
-            # Create filename with extension
             file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
             filename = f"{image_id}.{file_extension}"
-            
-            # Upload to S3
+
             s3_url = await upload_to_s3(file_content, filename)
-            
-            # Save metadata to Firebase
+
             metadata = {
                 "image_id": image_id,
                 "user_id": user_id,
@@ -93,34 +76,34 @@ async def upload_images(
                 "file_size": len(file_content),
                 "content_type": file.content_type,
                 "status": "uploaded",
-                "date": date_value,
-                "created_at": None
+                "date": date_value.isoformat(),
+                "created_at": datetime.now().isoformat()
             }
-            
+
             await save_image_metadata(image_id, metadata)
             logger.info(f"File {file.filename} uploaded successfully as {image_id}")
-            
+
             results.append({
                 "success": True,
                 "image_id": image_id,
                 "s3_url": s3_url,
                 "filename": file.filename,
-                "date": date_value,
+                "date": date_value.isoformat(),
                 "message": "Image uploaded successfully"
             })
-            
+
         except Exception as e:
             logger.error(f"Upload failed for {file.filename}: {e}")
             error_files.append({"filename": file.filename, "reason": f"Upload failed: {str(e)}"})
 
     if error_files:
-        logger.warning(f"Some files could not be processed: {error_files}")
+        logger.warning(f"Some files failed: {error_files}")
         raise HTTPException(
             status_code=400,
             detail={"error": "Some files could not be processed.", "files": error_files}
         )
 
-    logger.info(f"All files processed successfully. {len(results)} files uploaded.")
+    logger.info(f"All files processed successfully ({len(results)} uploaded).")
     return {"success": True, "results": results}
 
 
