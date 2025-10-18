@@ -120,4 +120,33 @@ export async function downloadImage(imageId) {
   }
 }
 
+export async function analyzeImageAnonymous(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    // Create a separate axios instance without auth interceptor for anonymous requests
+    const anonymousApi = axios.create({
+      baseURL: process.env.REACT_APP_API_URL || '/',
+      timeout: 120000,
+    });
+
+    const resp = await anonymousApi.post('/api/v1/analyze-anonymous', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return resp.data;
+  } catch (error) {
+    if (error.response) {
+      const errorData = error.response.data;
+      throw new Error(`Analysis failed: ${errorData.detail || error.response.statusText}`);
+    } else if (error.request) {
+      throw new Error('Network error: Unable to connect to server');
+    } else {
+      throw new Error(`Analysis failed: ${error.message}`);
+    }
+  }
+}
+
 export default api;

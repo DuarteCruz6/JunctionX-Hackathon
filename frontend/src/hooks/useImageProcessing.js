@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { uploadImages, getPredictionResults } from '../services/api.js';
+import { uploadImages, getPredictionResults, analyzeImageAnonymous } from '../services/api.js';
 
-export const useImageProcessing = (onImagesUploaded) => {
+export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [processedResults, setProcessedResults] = useState([]);
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
@@ -157,131 +157,12 @@ export const useImageProcessing = (onImagesUploaded) => {
     setUploadError(null);
     
     try {
-      // First, upload all selected images that haven't been uploaded yet
-      const imagesToUpload = selectedImages.filter(img => !img.uploaded);
-      
-      if (imagesToUpload.length > 0) {
-        setIsUploading(true);
-        console.log(`Uploading ${imagesToUpload.length} images...`);
-        
-        const filesToUpload = imagesToUpload.map(img => img.file);
-        const uploadResponse = await uploadImages(filesToUpload);
-        
-        if (uploadResponse.success && uploadResponse.results) {
-          // Update the selected images with upload results
-          setSelectedImages(prev => {
-            const updatedImages = [...prev];
-            let uploadIndex = 0;
-            
-            updatedImages.forEach((img, index) => {
-              if (!img.uploaded) {
-                const uploadResult = uploadResponse.results[uploadIndex];
-                updatedImages[index] = {
-                  ...img,
-                  uploaded: true,
-                  imageId: uploadResult?.image_id,
-                  s3Url: uploadResult?.s3_url,
-                  uploadDate: uploadResult?.date
-                };
-                uploadIndex++;
-              }
-            });
-            
-            return updatedImages;
-          });
-          
-          console.log('Images uploaded successfully:', uploadResponse.results);
-          
-          // Notify parent component about uploaded images
-          if (onImagesUploaded && uploadResponse.results) {
-            onImagesUploaded(uploadResponse.results);
-          }
-        } else {
-          throw new Error('Upload failed: Invalid response from server');
-        }
-        
-        setIsUploading(false);
-      }
-      
-      // Wait for backend processing to complete and fetch real results
-      console.log('Waiting for backend processing to complete...');
-      
-      // Poll for results every 2 seconds until processing is complete
-      const uploadedImages = selectedImages.filter(img => img.uploaded);
-      const realResults = [];
-      
-      for (const image of uploadedImages) {
-        if (image.imageId) {
-          let attempts = 0;
-          const maxAttempts = 30; // 60 seconds max wait time
-          
-          while (attempts < maxAttempts) {
-            try {
-              const results = await getPredictionResults(image.imageId);
-              
-              if (results.success && results.status === 'processed') {
-                // Create real result from backend data
-                const realResult = {
-                  id: realResults.length,
-                  inputImage: image.preview,
-                  inputName: image.name,
-                  outputImage: results.results_url || image.preview,
-                  outputName: `processed_${image.name}`,
-                  originalFile: image.file,
-                  confidence: results.results.average_confidence || 0,
-                  detectedAreas: results.results.num_detections || 0,
-                  processingTime: results.results.processing_time || 0,
-                  species: extractSpeciesFromDetections(results.results.detections || [])
-                };
-                
-                realResults.push(realResult);
-                console.log(`Real results fetched for ${image.name}:`, realResult);
-                break;
-              } else if (results.status === 'failed') {
-                console.error(`Processing failed for ${image.name}`);
-                break;
-              }
-              
-              // Still processing, wait and try again
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              attempts++;
-            } catch (error) {
-              console.error(`Error fetching results for ${image.name}:`, error);
-              break;
-            }
-          }
-          
-          if (attempts >= maxAttempts) {
-            console.warn(`Timeout waiting for results for ${image.name}`);
-          }
-        }
-      }
-      
-      // Add real results to existing processedResults
-      if (realResults.length > 0) {
-        setProcessedResults(prev => [...prev, ...realResults]);
-        setCurrentResultIndex(prev => prev === 0 && realResults.length > 0 ? 0 : prev);
-        console.log('Real results added:', realResults);
+      if (isLoggedIn) {
+        // Authenticated flow - upload to server and save results
+        await handleAuthenticatedProcessing();
       } else {
-        console.warn('No real results obtained, API may not be configured');
-        // Create results with error state instead of mock data
-        const errorResults = selectedImages.map((image, index) => ({
-          id: index,
-          inputImage: image.preview,
-          inputName: image.name,
-          outputImage: image.preview, // Use original image as fallback
-          outputName: `processed_${image.name}`,
-          originalFile: image.file,
-          confidence: 0, // Show 0 instead of fake data
-          detectedAreas: 0, // Show 0 instead of fake data
-          processingTime: 0, // Show 0 instead of fake data
-          species: [], // Empty species array
-          status: 'api_error', // Add error status
-          error: 'API not configured or processing failed'
-        }));
-        
-        setProcessedResults(prev => [...prev, ...errorResults]);
-        setCurrentResultIndex(prev => prev === 0 && errorResults.length > 0 ? 0 : prev);
+        // Anonymous flow - analyze without saving
+        await handleAnonymousProcessing();
       }
       
       // Clear selectedImages after processing (images now only appear in results)
@@ -294,6 +175,196 @@ export const useImageProcessing = (onImagesUploaded) => {
       setIsUploading(false);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAuthenticatedProcessing = async () => {
+    // First, upload all selected images that haven't been uploaded yet
+    const imagesToUpload = selectedImages.filter(img => !img.uploaded);
+    
+    if (imagesToUpload.length > 0) {
+      setIsUploading(true);
+      console.log(`Uploading ${imagesToUpload.length} images...`);
+      
+      const filesToUpload = imagesToUpload.map(img => img.file);
+      const uploadResponse = await uploadImages(filesToUpload);
+      
+      if (uploadResponse.success && uploadResponse.results) {
+        // Update the selected images with upload results
+        setSelectedImages(prev => {
+          const updatedImages = [...prev];
+          let uploadIndex = 0;
+          
+          updatedImages.forEach((img, index) => {
+            if (!img.uploaded) {
+              const uploadResult = uploadResponse.results[uploadIndex];
+              updatedImages[index] = {
+                ...img,
+                uploaded: true,
+                imageId: uploadResult?.image_id,
+                s3Url: uploadResult?.s3_url,
+                uploadDate: uploadResult?.date
+              };
+              uploadIndex++;
+            }
+          });
+          
+          return updatedImages;
+        });
+        
+        console.log('Images uploaded successfully:', uploadResponse.results);
+        
+        // Notify parent component about uploaded images
+        if (onImagesUploaded && uploadResponse.results) {
+          onImagesUploaded(uploadResponse.results);
+        }
+      } else {
+        throw new Error('Upload failed: Invalid response from server');
+      }
+      
+      setIsUploading(false);
+    }
+    
+    // Wait for backend processing to complete and fetch real results
+    console.log('Waiting for backend processing to complete...');
+    
+    // Poll for results every 2 seconds until processing is complete
+    const uploadedImages = selectedImages.filter(img => img.uploaded);
+    const realResults = [];
+    
+    for (const image of uploadedImages) {
+      if (image.imageId) {
+        let attempts = 0;
+        const maxAttempts = 30; // 60 seconds max wait time
+        
+        while (attempts < maxAttempts) {
+          try {
+            const results = await getPredictionResults(image.imageId);
+            
+            if (results.success && (results.status === 'processed' || results.status === 'failed')) {
+              // Create real result from backend data
+              const realResult = {
+                id: realResults.length,
+                inputImage: image.preview,
+                inputName: image.name,
+                outputImage: results.results_url || image.preview,
+                outputName: `processed_${image.name}`,
+                originalFile: image.file,
+                confidence: results.results.average_confidence || 0,
+                detectedAreas: results.results.num_detections || 0,
+                processingTime: results.results.processing_time || 0,
+                species: extractSpeciesFromDetections(results.results.detections || []),
+                status: results.status, // Include the status (processed or failed)
+                error: results.results.error || null
+              };
+              
+              realResults.push(realResult);
+              console.log(`Real results fetched for ${image.name}:`, realResult);
+              break;
+            }
+            
+            // Still processing, wait and try again
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            attempts++;
+          } catch (error) {
+            console.error(`Error fetching results for ${image.name}:`, error);
+            break;
+          }
+        }
+        
+        if (attempts >= maxAttempts) {
+          console.warn(`Timeout waiting for results for ${image.name}`);
+        }
+      }
+    }
+    
+    // Add real results to existing processedResults
+    if (realResults.length > 0) {
+      setProcessedResults(prev => [...prev, ...realResults]);
+      setCurrentResultIndex(prev => prev === 0 && realResults.length > 0 ? 0 : prev);
+      console.log('Real results added:', realResults);
+    } else {
+      console.warn('No real results obtained, API may not be configured');
+      // Create results with error state instead of mock data
+      const errorResults = selectedImages.map((image, index) => ({
+        id: index,
+        inputImage: image.preview,
+        inputName: image.name,
+        outputImage: image.preview, // Use original image as fallback
+        outputName: `processed_${image.name}`,
+        originalFile: image.file,
+        confidence: 0, // Show 0 instead of fake data
+        detectedAreas: 0, // Show 0 instead of fake data
+        processingTime: 0, // Show 0 instead of fake data
+        species: [], // Empty species array
+        status: 'failed', // Use failed status to match backend
+        error: 'API not configured or processing failed'
+      }));
+      
+      setProcessedResults(prev => [...prev, ...errorResults]);
+      setCurrentResultIndex(prev => prev === 0 && errorResults.length > 0 ? 0 : prev);
+    }
+  };
+
+  const handleAnonymousProcessing = async () => {
+    console.log('Processing images anonymously (no data saved)...');
+    
+    const anonymousResults = [];
+    
+    for (const image of selectedImages) {
+      try {
+        console.log(`Analyzing ${image.name} anonymously...`);
+        const analysisResult = await analyzeImageAnonymous(image.file);
+        
+        if (analysisResult.success) {
+          // Create result from anonymous analysis
+          const anonymousResult = {
+            id: anonymousResults.length,
+            inputImage: image.preview,
+            inputName: image.name,
+            outputImage: image.preview, // Use original image since no processed image is saved
+            outputName: `analyzed_${image.name}`,
+            originalFile: image.file,
+            confidence: analysisResult.results.average_confidence || 0,
+            detectedAreas: analysisResult.results.num_detections || 0,
+            processingTime: analysisResult.processing_time || 0,
+            species: extractSpeciesFromDetections(analysisResult.results.detections || []),
+            status: analysisResult.status === 'failed' ? 'failed' : 'anonymous', // Mark as failed or anonymous
+            message: analysisResult.message,
+            error: analysisResult.results.error || null
+          };
+          
+          anonymousResults.push(anonymousResult);
+          console.log(`Anonymous analysis completed for ${image.name}:`, anonymousResult);
+        } else {
+          throw new Error(`Analysis failed for ${image.name}`);
+        }
+      } catch (error) {
+        console.error(`Error analyzing ${image.name} anonymously:`, error);
+        // Create error result
+        const errorResult = {
+          id: anonymousResults.length,
+          inputImage: image.preview,
+          inputName: image.name,
+          outputImage: image.preview,
+          outputName: `error_${image.name}`,
+          originalFile: image.file,
+          confidence: 0,
+          detectedAreas: 0,
+          processingTime: 0,
+          species: [],
+          status: 'error',
+          error: error.message
+        };
+        anonymousResults.push(errorResult);
+      }
+    }
+    
+    // Add anonymous results to existing processedResults
+    if (anonymousResults.length > 0) {
+      setProcessedResults(prev => [...prev, ...anonymousResults]);
+      setCurrentResultIndex(prev => prev === 0 && anonymousResults.length > 0 ? 0 : prev);
+      console.log('Anonymous results added:', anonymousResults);
     }
   };
 

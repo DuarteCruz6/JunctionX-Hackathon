@@ -175,24 +175,54 @@ async def process_image_after_upload(image_id: str, s3_url: str):
         
         # Run ML inference
         logger.info(f"Running ML inference for image: {image_id}")
-        prediction_results = await run_acacia_detection(s3_url)
-        
-        # Upload results to S3
-        results_s3_url = await upload_prediction_results(image_id, prediction_results)
-        
-        # Update metadata with results
-        results_data = {
-            "status": "processed",
-            "prediction_results": prediction_results,
-            "results_s3_url": results_s3_url,
-            "processed_at": datetime.now().isoformat()
-        }
-        
-        await update_prediction_results(image_id, results_data)
-        logger.info(f"Image {image_id} processed successfully with {prediction_results.get('num_detections', 0)} detections")
-        
-        # Update submission statistics
-        await update_submission_statistics(image_id, prediction_results)
+        try:
+            prediction_results = await run_acacia_detection(s3_url)
+            
+            # Upload results to S3
+            results_s3_url = await upload_prediction_results(image_id, prediction_results)
+            
+            # Update metadata with results
+            results_data = {
+                "status": "processed",
+                "prediction_results": prediction_results,
+                "results_s3_url": results_s3_url,
+                "processed_at": datetime.now().isoformat()
+            }
+            
+            await update_prediction_results(image_id, results_data)
+            logger.info(f"Image {image_id} processed successfully with {prediction_results.get('num_detections', 0)} detections")
+            
+            # Update submission statistics
+            await update_submission_statistics(image_id, prediction_results)
+            
+        except Exception as ml_error:
+            logger.warning(f"ML API failed for image {image_id}, setting failed status: {ml_error}")
+            # Set failed status with zero values when ML API fails
+            failed_results = {
+                "detections": [],
+                "num_detections": 0,
+                "average_confidence": 0.0,
+                "coverage_percentage": 0.0,
+                "processing_time": 0.0,
+                "model_version": "unavailable",
+                "status": "failed",
+                "error": str(ml_error)
+            }
+            
+            # Update metadata with failed results
+            results_data = {
+                "status": "failed",
+                "prediction_results": failed_results,
+                "results_s3_url": None,
+                "processed_at": datetime.now().isoformat()
+            }
+            
+            await update_prediction_results(image_id, results_data)
+            logger.info(f"Image {image_id} marked as failed due to ML API unavailability")
+            
+            # Update submission statistics with failed results
+            await update_submission_statistics(image_id, failed_results)
+            return  # Exit early to prevent outer exception handler from overriding
         
     except Exception as e:
         logger.error(f"Failed to process image {image_id}: {e}")
@@ -246,10 +276,32 @@ async def update_submission_statistics(image_id: str, prediction_results: dict):
         
         average_confidence = sum(confidences) / len(confidences) if confidences else 0.0
         
+        # Determine submission status based on image statuses
+        # Get all images for this submission to check their statuses
+        from app.utils.firebase_db import get_submission_with_images
+        submission_with_images = await get_submission_with_images(submission_id, user_id)
+        
+        if submission_with_images:
+            images = submission_with_images.get('images', [])
+            image_statuses = [img.get('status', 'unknown') for img in images]
+            
+            # Determine overall submission status
+            if all(status == 'processed' for status in image_statuses):
+                submission_status = 'completed'
+            elif any(status == 'failed' for status in image_statuses):
+                submission_status = 'failed'
+            elif any(status == 'processing' for status in image_statuses):
+                submission_status = 'processing'
+            else:
+                submission_status = 'unknown'
+        else:
+            submission_status = 'processing'  # Default if we can't determine
+        
         # Update submission
         await update_submission(submission_id, {
             "total_detected_areas": total_detected_areas,
-            "average_confidence": average_confidence
+            "average_confidence": average_confidence,
+            "status": submission_status
         })
         
         logger.info(f"Updated submission {submission_id} statistics")

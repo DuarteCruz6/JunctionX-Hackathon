@@ -121,6 +121,89 @@ class HuggingFaceML:
                 f"Stage times: {stage_times}"
             )
             raise Exception(f"ML inference failed: {str(e)}")
+
+    async def run_inference_from_file(self, file_content: bytes) -> Dict[str, Any]:
+        """
+        Run Acacia detection inference on file content directly.
+        
+        Args:
+            file_content: Image file content as bytes
+        
+        Returns:
+            dict: Prediction results with detections and confidence scores
+        """
+        start_time = time.time()
+        stage_times = {}
+        
+        try:
+            logger.info(f"Starting ML inference for file content ({len(file_content)} bytes)")
+            
+            # Convert file content to base64
+            prep_start = time.time()
+            logger.debug("Converting file content to base64")
+            image_content = base64.b64encode(file_content).decode('utf-8')
+            stage_times['preparation'] = time.time() - prep_start
+            logger.debug(f"Base64 conversion completed in {stage_times['preparation']:.2f}s")
+            
+            # Prepare request
+            payload = {
+                "inputs": image_content,
+                "parameters": {
+                    "confidence_threshold": 0.3,
+                    "return_mask": True,
+                    "return_confidence": True
+                }
+            }
+            
+            # Make API request
+            inference_start = time.time()
+            logger.info("Sending inference request to Hugging Face API")
+            response = requests.post(
+                self.api_url,
+                headers=self.headers,
+                json=payload,
+                timeout=60
+            )
+            stage_times['api_call'] = time.time() - inference_start
+            
+            if response.status_code == 200:
+                logger.debug(f"Successfully received inference results in {stage_times['api_call']:.2f}s")
+                results = response.json()
+                
+                # Process results
+                process_start = time.time()
+                processed_results = self._process_results(results, start_time)
+                stage_times['processing'] = time.time() - process_start
+                
+                # Calculate total time and log performance metrics
+                total_time = time.time() - start_time
+                logger.info(
+                    f"ML inference completed successfully. "
+                    f"Total time: {total_time:.2f}s "
+                    f"(Prep: {stage_times['preparation']:.2f}s, "
+                    f"API: {stage_times['api_call']:.2f}s, "
+                    f"Processing: {stage_times['processing']:.2f}s)"
+                )
+                
+                # Add timing information to results
+                processed_results['performance_metrics'] = {
+                    'total_time': total_time,
+                    'stage_times': stage_times
+                }
+                
+                return processed_results
+                
+            else:
+                logger.error(f"ML API request failed with status {response.status_code}: {response.text}")
+                raise Exception(f"ML API request failed: {response.status_code} - {response.text}")
+                
+        except Exception as e:
+            total_time = time.time() - start_time
+            logger.error(
+                f"ML inference failed after {total_time:.2f}s: {str(e)} "
+                f"Stage times: {stage_times}"
+            )
+            raise Exception(f"ML inference failed: {str(e)}")
     
     async def _download_image(self, image_url: str) -> str:
         """
@@ -248,6 +331,18 @@ async def run_acacia_detection(image_url: str) -> Dict[str, Any]:
         dict: Detection results
     """
     return await ml_model.run_inference(image_url)
+
+async def run_acacia_detection_from_file(file_content: bytes) -> Dict[str, Any]:
+    """
+    Run Acacia detection on file content directly.
+    
+    Args:
+        file_content: Image file content as bytes
+    
+    Returns:
+        dict: Detection results
+    """
+    return await ml_model.run_inference_from_file(file_content)
 
 # Test function for development
 async def test_ml_pipeline():

@@ -411,7 +411,10 @@ const Reports = () => {
                             report.status === 'failed' ? 'bg-red-600/20 text-red-400' :
                             'bg-slate-600/20 text-slate-400'
                           }`}>
-                            {report.status}
+                            {report.status === 'completed' ? 'Completed' :
+                             report.status === 'processing' ? 'Processing' :
+                             report.status === 'failed' ? 'Failed' :
+                             report.status}
                           </span>
                         </div>
                       </div>
@@ -476,7 +479,7 @@ const Reports = () => {
                     <h2 className="text-2xl font-bold text-white">Analysis Results</h2>
                     <div className="flex items-center space-x-4">
                       <div className="text-sm text-slate-400">
-                        Confidence: {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                        Confidence: {selectedReport.images[currentResultIndex]?.status === 'failed' 
                           ? 'N/A' 
                           : `${(selectedReport.images[currentResultIndex]?.confidence * 100).toFixed(1)}%`
                         }
@@ -529,16 +532,16 @@ const Reports = () => {
                             <div>
                               <div className="text-slate-400">Processing Time</div>
                               <div className="text-white font-semibold">
-                                {selectedReport.images[currentResultIndex]?.status === 'api_error' 
-                                  ? 'N/A' 
-                                  : `${selectedReport.images[currentResultIndex]?.processingTime || 0}s`
-                                }
+                              {selectedReport.images[currentResultIndex]?.status === 'failed' 
+                                ? 'N/A' 
+                                : `${selectedReport.images[currentResultIndex]?.processingTime || 0}s`
+                              }
                               </div>
                             </div>
                             <div>
                               <div className="text-slate-400">Detected Areas</div>
                               <div className="text-white font-semibold">
-                                {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                                {selectedReport.images[currentResultIndex]?.status === 'failed' 
                                   ? 'N/A' 
                                   : selectedReport.images[currentResultIndex]?.detectedAreas || 0
                                 }
@@ -547,11 +550,11 @@ const Reports = () => {
                             <div>
                               <div className="text-slate-400">Confidence</div>
                               <div className={`font-semibold ${
-                                selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                                selectedReport.images[currentResultIndex]?.status === 'failed' 
                                   ? 'text-red-400' 
                                   : 'text-emerald-400'
                               }`}>
-                                {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                                {selectedReport.images[currentResultIndex]?.status === 'failed' 
                                   ? 'N/A' 
                                   : `${(selectedReport.images[currentResultIndex]?.confidence * 100 || 0).toFixed(1)}%`
                                 }
@@ -563,20 +566,18 @@ const Reports = () => {
                               selectedReport.images[currentResultIndex]?.status === 'processed' ? 'text-green-400' :
                               selectedReport.images[currentResultIndex]?.status === 'processing' ? 'text-yellow-400' :
                               selectedReport.images[currentResultIndex]?.status === 'failed' ? 'text-red-400' :
-                              selectedReport.images[currentResultIndex]?.status === 'api_error' ? 'text-red-400' :
                               'text-slate-400'
                             }`}>
                               {selectedReport.images[currentResultIndex]?.status === 'processed' ? 'Completed' :
                                selectedReport.images[currentResultIndex]?.status === 'processing' ? 'Processing' :
-                               selectedReport.images[currentResultIndex]?.status === 'failed' ? 'Failed' :
-                               selectedReport.images[currentResultIndex]?.status === 'api_error' ? 'API Error' :
+                               selectedReport.images[currentResultIndex]?.status === 'failed' ? 'ML Service Unavailable' :
                                'Unknown'}
                             </div>
                           </div>
                           <div>
                             <div className="text-slate-400">Species</div>
                             <div className="text-white font-semibold text-sm">
-                              {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                              {selectedReport.images[currentResultIndex]?.status === 'failed' 
                                 ? 'N/A' 
                                 : selectedReport.images[currentResultIndex]?.species?.join(', ') || 'None detected'
                               }
@@ -610,17 +611,17 @@ const Reports = () => {
                         <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-3">
                           <div className="text-sm text-white">
                             <div className="font-semibold mb-1">
-                              Detected Areas: {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                              Detected Areas: {selectedReport.images[currentResultIndex]?.status === 'failed' 
                                 ? 'N/A' 
                                 : selectedReport.images[currentResultIndex]?.detectedAreas || 0
                               }
                             </div>
                             <div className={`${
-                              selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                              selectedReport.images[currentResultIndex]?.status === 'failed' 
                                 ? 'text-red-400' 
                                 : 'text-emerald-400'
                             }`}>
-                              Confidence: {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                              Confidence: {selectedReport.images[currentResultIndex]?.status === 'failed' 
                                 ? 'N/A' 
                                 : `${(selectedReport.images[currentResultIndex]?.confidence * 100 || 0).toFixed(1)}%`
                               }

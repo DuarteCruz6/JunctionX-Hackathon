@@ -30,7 +30,7 @@ const AcaciaSearch = () => {
     console.log('Images uploaded, reports will refresh automatically');
   };
   
-  const imageProcessing = useImageProcessing(handleImagesUploaded);
+  const imageProcessing = useImageProcessing(handleImagesUploaded, auth.isLoggedIn);
 
   // Navigation handlers
   const handleReportsClick = () => {

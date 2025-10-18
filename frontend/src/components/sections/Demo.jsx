@@ -266,16 +266,16 @@ const Demo = ({
                         <div>
                           <div className="text-slate-400">Processing Time</div>
                           <div className="text-white font-semibold">
-                            {processedResults[currentResultIndex]?.status === 'api_error' 
+                            {processedResults[currentResultIndex]?.status === 'failed'
                               ? 'N/A' 
-                              : `${processedResults[currentResultIndex]?.processingTime || 0}s`
+                              : `${(processedResults[currentResultIndex]?.processingTime || 0).toFixed(2)}s`
                             }
                           </div>
                         </div>
                         <div>
                           <div className="text-slate-400">Detected Areas</div>
                           <div className="text-white font-semibold">
-                            {processedResults[currentResultIndex]?.status === 'api_error' 
+                            {processedResults[currentResultIndex]?.status === 'failed'
                               ? 'N/A' 
                               : processedResults[currentResultIndex]?.detectedAreas || 0
                             }
@@ -284,11 +284,11 @@ const Demo = ({
                         <div>
                           <div className="text-slate-400">Confidence</div>
                           <div className={`font-semibold ${
-                            processedResults[currentResultIndex]?.status === 'api_error' 
+                            processedResults[currentResultIndex]?.status === 'failed'
                               ? 'text-red-400' 
                               : 'text-emerald-400'
                           }`}>
-                            {processedResults[currentResultIndex]?.status === 'api_error' 
+                            {processedResults[currentResultIndex]?.status === 'failed'
                               ? 'N/A' 
                               : `${(processedResults[currentResultIndex]?.confidence * 100).toFixed(1)}%`
                             }
@@ -297,12 +297,12 @@ const Demo = ({
                         <div>
                           <div className="text-slate-400">Status</div>
                           <div className={`font-semibold ${
-                            processedResults[currentResultIndex]?.status === 'api_error' 
+                            processedResults[currentResultIndex]?.status === 'failed'
                               ? 'text-red-400' 
                               : 'text-green-400'
                           }`}>
-                            {processedResults[currentResultIndex]?.status === 'api_error' 
-                              ? 'API Error' 
+                            {processedResults[currentResultIndex]?.status === 'failed'
+                              ? 'ML Service Unavailable'
                               : 'Completed'
                             }
                           </div>
@@ -310,7 +310,7 @@ const Demo = ({
                         <div>
                           <div className="text-slate-400">Species</div>
                           <div className="text-white font-semibold">
-                            {processedResults[currentResultIndex]?.status === 'api_error' 
+                            {processedResults[currentResultIndex]?.status === 'failed'
                               ? 'N/A' 
                               : processedResults[currentResultIndex]?.species?.length > 0 
                                 ? processedResults[currentResultIndex].species.join(', ')
