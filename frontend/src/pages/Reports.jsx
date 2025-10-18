@@ -6,6 +6,7 @@ import Header from '../components/layout/Header';
 import Footer from '../components/sections/Footer';
 import LoginModal from '../components/modals/LoginModal';
 import DownloadOptionsModal from '../components/modals/DownloadOptionsModal';
+import ImageModal from '../components/modals/ImageModal';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import PhotoNavigation from '../components/ui/PhotoNavigation';
 
@@ -25,6 +26,7 @@ const Reports = () => {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showInputModal, setShowInputModal] = useState(false);
   
   // Custom hooks
   const auth = useAuth();
@@ -107,6 +109,17 @@ const Reports = () => {
     return timeString;
   };
 
+  // Helper function to create clean filenames without double extensions
+  const createCleanFilename = (baseName, prefix = 'processed') => {
+    if (!baseName) baseName = 'image';
+    
+    // Remove any existing image extensions
+    const nameWithoutExt = baseName.replace(/\.(jpg|jpeg|png|tiff)$/i, '');
+    
+    // Create clean filename with single extension
+    return `${prefix}_${nameWithoutExt.replace(/[^a-zA-Z0-9.-]/g, '_')}.jpg`;
+  };
+
   // Download functionality
   const showDownloadOptions = () => {
     setShowDownloadModal(true);
@@ -121,7 +134,7 @@ const Reports = () => {
     
     const currentImage = selectedReport.images[currentResultIndex];
     const imageId = currentImage.image_id;
-    const filename = `processed_${currentImage.input_name || 'image'}.jpg`;
+    const filename = createCleanFilename(currentImage.input_name);
     
     console.log('Downloading current image via backend:', {
       imageId,
@@ -212,7 +225,7 @@ const Reports = () => {
           }
           
           // Create a clean filename
-          const cleanFilename = `processed_image_${i + 1}_${(image.input_name || 'image').replace(/[^a-zA-Z0-9.-]/g, '_')}.jpg`;
+          const cleanFilename = createCleanFilename(image.input_name, `processed_image_${i + 1}`);
           
           // Add to zip
           zip.file(cleanFilename, blob);
@@ -487,7 +500,10 @@ const Reports = () => {
                     {/* Input Image Thumbnail - Sidebar */}
                     <div className="xl:col-span-1">
                       <h4 className="text-lg font-semibold text-white mb-4">Input Image</h4>
-                      <div className="relative cursor-pointer group mb-4">
+                      <div 
+                        className="relative cursor-pointer group mb-4"
+                        onClick={() => setShowInputModal(true)}
+                      >
                         <img
                           src={selectedReport.images[currentResultIndex]?.inputImage}
                           alt="Input"
@@ -651,9 +667,16 @@ const Reports = () => {
         onClose={closeDownloadModal}
         onDownloadCurrent={downloadCurrentImage}
         onDownloadAll={downloadAllImages}
-        currentImageName={`processed_${selectedReport?.images?.[currentResultIndex]?.input_name || 'image'}.jpg`}
+        currentImageName={createCleanFilename(selectedReport?.images?.[currentResultIndex]?.input_name)}
         totalImagesCount={selectedReport?.images?.length || 0}
         isDownloading={isDownloading}
+      />
+
+      <ImageModal
+        isOpen={showInputModal}
+        onClose={() => setShowInputModal(false)}
+        imageSrc={selectedReport?.images?.[currentResultIndex]?.inputImage}
+        imageName={selectedReport?.images?.[currentResultIndex]?.input_name}
       />
     </div>
   );

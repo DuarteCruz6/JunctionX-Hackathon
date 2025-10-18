@@ -359,7 +359,8 @@ async def download_image(
         
         # Get original filename or create one
         original_filename = metadata.get('original_filename', 'image.jpg')
-        if not original_filename.endswith(('.jpg', '.jpeg', '.png', '.tiff')):
+        # Only add .jpg extension if the filename doesn't already have an image extension
+        if not original_filename.lower().endswith(('.jpg', '.jpeg', '.png', '.tiff')):
             original_filename += '.jpg'
         
         # Determine content type based on file extension
