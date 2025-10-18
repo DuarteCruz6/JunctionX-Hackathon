@@ -149,6 +149,8 @@ const AcaciaSearch = () => {
         loginForm={auth.loginForm}
         onFormChange={auth.handleLoginFormChange}
         onSubmit={auth.handleLoginSubmit}
+        isLoading={auth.isLoading}
+        error={auth.error}
       />
 
       <ReportsModal
