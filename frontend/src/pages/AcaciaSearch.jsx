@@ -50,9 +50,9 @@ const AcaciaSearch = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-slate-900 pt-16">
+    <div className="min-h-screen bg-slate-900 pt-16">
       {/* Background Image */}
-      <div className="absolute inset-0 z-0">
+      <div className="fixed inset-0 z-0">
         <img 
           src="/acacia.jpg" 
           alt="Acacia forest background" 
@@ -62,7 +62,7 @@ const AcaciaSearch = () => {
       </div>
       
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 min-h-screen flex flex-col">
         {/* Navigation */}
         <Header
           isLoggedIn={auth.isLoggedIn}
@@ -110,7 +110,8 @@ const AcaciaSearch = () => {
         </section>
 
         {/* Demo Section */}
-        <Demo
+        <div className="flex-1">
+          <Demo
           selectedImages={imageProcessing.selectedImages}
           processedResults={imageProcessing.processedResults}
           currentResultIndex={imageProcessing.currentResultIndex}
@@ -140,7 +141,8 @@ const AcaciaSearch = () => {
           isLoading={imageProcessing.isLoading}
           isUploading={imageProcessing.isUploading}
           uploadError={imageProcessing.uploadError}
-        />
+          />
+        </div>
 
         {/* Footer */}
         <Footer />
