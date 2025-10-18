@@ -10,7 +10,7 @@ const Hero = ({ onDemoClick, onReportsClick }) => {
           muted
           loop
           playsInline
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover scale-125 transition-all duration-1000 ease-in-out"
         >
           <source src="/demo_forest.mp4" type="video/mp4" />
         </video>
