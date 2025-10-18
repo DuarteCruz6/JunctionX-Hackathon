@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import './index.css';
 
 // Components
@@ -11,6 +11,7 @@ import LoginModal from './components/modals/LoginModal';
 import ReportsModal from './components/modals/ReportsModal';
 import ScrollToTop from './components/ScrollToTop';
 import AcaciaSearch from './pages/AcaciaSearch';
+import Reports from './pages/Reports';
 
 // Hooks
 import { useAuth } from './hooks/useAuth';
@@ -18,6 +19,7 @@ import { useReports } from './hooks/useReports';
 
 // Home component for the main page
 const Home = () => {
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   // Custom hooks
@@ -26,13 +28,17 @@ const Home = () => {
 
   // Navigation handlers
   const handleDemoClick = () => {
-    window.location.href = '/public-demo';
+    navigate('/public-demo');
   };
 
   const handleReportsClick = () => {
-    const result = reports.handleReportsClick();
-    if (result === true) {
-      auth.setIsLoginModal(true);
+    if (auth.isLoggedIn) {
+      navigate('/reports');
+    } else {
+      const result = reports.handleReportsClick();
+      if (result === true) {
+        auth.setIsLoginModal(true);
+      }
     }
   };
 
@@ -110,6 +116,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/public-demo" element={<AcaciaSearch />} />
+        <Route path="/reports" element={<Reports />} />
       </Routes>
     </Router>
   );

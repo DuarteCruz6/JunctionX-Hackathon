@@ -50,7 +50,13 @@ const Header = ({
                 Acacia Search
               </button>
               <button 
-                onClick={onReportsClick}
+                onClick={() => {
+                  if (isLoggedIn) {
+                    navigate('/reports');
+                  } else {
+                    onReportsClick();
+                  }
+                }}
                 className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Reports
