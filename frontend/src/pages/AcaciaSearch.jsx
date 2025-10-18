@@ -129,6 +129,12 @@ const AcaciaSearch = () => {
           onEditInputChange={imageProcessing.handleEditInputChange}
           onEditKeyPress={imageProcessing.handleEditKeyPress}
           onDownloadImage={imageProcessing.downloadImage}
+          onShowDownloadOptions={imageProcessing.showDownloadOptions}
+          onCloseDownloadModal={imageProcessing.closeDownloadModal}
+          onDownloadCurrentImage={imageProcessing.downloadCurrentImage}
+          onDownloadAllImages={imageProcessing.downloadAllImages}
+          showDownloadModal={imageProcessing.showDownloadModal}
+          isDownloading={imageProcessing.isDownloading}
           onShowInputModal={() => imageProcessing.setShowInputModal(true)}
           onRemoveImage={imageProcessing.removeImage}
           isLoading={imageProcessing.isLoading}

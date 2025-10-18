@@ -1,5 +1,6 @@
 import React from 'react';
 import PhotoNavigation from '../ui/PhotoNavigation';
+import DownloadOptionsModal from '../modals/DownloadOptionsModal';
 
 const Demo = ({
   selectedImages,
@@ -20,6 +21,12 @@ const Demo = ({
   onEditInputChange,
   onEditKeyPress,
   onDownloadImage,
+  onShowDownloadOptions,
+  onCloseDownloadModal,
+  onDownloadCurrentImage,
+  onDownloadAllImages,
+  showDownloadModal,
+  isDownloading,
   onShowInputModal,
   onRemoveImage,
   isLoading,
@@ -194,10 +201,7 @@ const Demo = ({
                       Confidence: {(processedResults[currentResultIndex]?.confidence * 100).toFixed(1)}%
                     </div>
                     <button
-                      onClick={() => onDownloadImage(
-                        processedResults[currentResultIndex]?.outputImage,
-                        processedResults[currentResultIndex]?.outputName
-                      )}
+                      onClick={onShowDownloadOptions}
                       className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors"
                     >
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -304,6 +308,17 @@ const Demo = ({
           </div>
         </div>
       </div>
+
+      {/* Download Options Modal */}
+      <DownloadOptionsModal
+        isOpen={showDownloadModal}
+        onClose={onCloseDownloadModal}
+        onDownloadCurrent={onDownloadCurrentImage}
+        onDownloadAll={onDownloadAllImages}
+        currentImageName={processedResults[currentResultIndex]?.outputName}
+        totalImagesCount={processedResults.length}
+        isDownloading={isDownloading}
+      />
     </section>
   );
 };

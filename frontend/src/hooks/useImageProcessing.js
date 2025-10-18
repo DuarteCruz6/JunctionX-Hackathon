@@ -11,6 +11,8 @@ export const useImageProcessing = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleFileChange = async (event) => {
     const files = Array.from(event.target.files);
@@ -200,20 +202,25 @@ export const useImageProcessing = () => {
       const processingTime = Math.random() * 2000 + 2000; // 2-4 seconds
       await new Promise(resolve => setTimeout(resolve, processingTime));
       
-      // Create mock processing results
+      // Create mock processing results from current selected images
       const mockResults = selectedImages.map((image, index) => ({
         id: index,
         inputImage: image.preview,
         inputName: image.name,
         outputImage: image.preview, // In real implementation, this would be the processed result
         outputName: `processed_${image.name}`,
+        originalFile: image.file, // Keep reference to original file for download
         confidence: Math.random() * 0.3 + 0.7, // Random confidence between 0.7-1.0
         detectedAreas: Math.floor(Math.random() * 5) + 1, // Random detected areas 1-5
         processingTime: Math.floor(Math.random() * 3) + 1 // Random processing time 1-3 seconds
       }));
       
-      setProcessedResults(mockResults);
-      setCurrentResultIndex(0);
+      // Add new results to existing processedResults (for multiple batches)
+      setProcessedResults(prev => [...prev, ...mockResults]);
+      setCurrentResultIndex(prev => prev === 0 && mockResults.length > 0 ? 0 : prev);
+      
+      // Clear selectedImages after processing (images now only appear in results)
+      setSelectedImages([]);
       
     } catch (error) {
       console.error('Process error:', error);
@@ -273,6 +280,160 @@ export const useImageProcessing = () => {
     document.body.removeChild(link);
   };
 
+  const showDownloadOptions = () => {
+    setShowDownloadModal(true);
+  };
+
+  const closeDownloadModal = () => {
+    setShowDownloadModal(false);
+  };
+
+  const downloadCurrentImage = () => {
+    const currentResult = processedResults[currentResultIndex];
+    if (currentResult) {
+      if (currentResult.originalFile) {
+        // Use original file for download
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(currentResult.originalFile);
+        link.download = currentResult.outputName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      } else {
+        // Fallback to original method
+        downloadImage(currentResult.outputImage, currentResult.outputName);
+      }
+      setShowDownloadModal(false);
+    }
+  };
+
+  const downloadAllImages = async () => {
+    console.log('downloadAllImages called, processedResults:', processedResults);
+    
+    if (processedResults.length === 0) {
+      console.log('No processed results to download');
+      alert('No images to download');
+      return;
+    }
+    
+    setIsDownloading(true);
+    console.log('Starting ZIP download process...');
+    
+    try {
+      // Use JSZip from global scope (loaded via script tag)
+      console.log('Using JSZip library...');
+      
+      if (typeof window.JSZip === 'undefined') {
+        throw new Error('JSZip library is not loaded. Please refresh the page and try again.');
+      }
+      
+      const zip = new window.JSZip();
+      console.log('JSZip instance created:', zip);
+      
+      // Add each processed image to the zip
+      for (let i = 0; i < processedResults.length; i++) {
+        const result = processedResults[i];
+        console.log(`Processing image ${i + 1}/${processedResults.length}:`, result);
+        
+        try {
+          let blob;
+          let filename;
+          
+          // Use the original file if available, otherwise fetch from URL
+          if (result.originalFile && result.originalFile instanceof File) {
+            blob = result.originalFile;
+            filename = result.originalFile.name;
+            console.log('Using original file:', filename);
+          } else if (result.outputImage) {
+            // Fallback: fetch from URL
+            console.log('Fetching from URL:', result.outputImage);
+            const response = await fetch(result.outputImage);
+            
+            if (!response.ok) {
+              throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+            }
+            
+            blob = await response.blob();
+            filename = result.outputName || `image_${i + 1}.jpg`;
+            console.log('Fetched from URL successfully');
+          } else {
+            throw new Error('No valid image source found');
+          }
+          
+          // Validate blob
+          if (!blob || blob.size === 0) {
+            throw new Error('Invalid or empty image blob');
+          }
+          
+          // Create a clean filename
+          const cleanFilename = `processed_image_${i + 1}_${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+          
+          // Add to zip
+          zip.file(cleanFilename, blob);
+          console.log(`Added to zip: ${cleanFilename} (${blob.size} bytes)`);
+          
+        } catch (imageError) {
+          console.error(`Error processing image ${i + 1}:`, imageError);
+          // Continue with other images instead of failing completely
+          continue;
+        }
+      }
+      
+      // Check if any files were added to the zip
+      const fileCount = Object.keys(zip.files).length;
+      if (fileCount === 0) {
+        throw new Error('No valid images could be added to the ZIP file');
+      }
+      
+      console.log(`Generating ZIP file with ${fileCount} images...`);
+      
+      // Generate the zip file with compression
+      const zipBlob = await zip.generateAsync({ 
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: {
+          level: 6
+        }
+      });
+      
+      console.log('ZIP file generated, size:', zipBlob.size);
+      
+      if (zipBlob.size === 0) {
+        throw new Error('Generated ZIP file is empty');
+      }
+      
+      // Create download link
+      const link = document.createElement('a');
+      const zipUrl = URL.createObjectURL(zipBlob);
+      link.href = zipUrl;
+      link.download = `acacia_analysis_results_${new Date().toISOString().split('T')[0]}.zip`;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the object URL after a delay
+      setTimeout(() => {
+        URL.revokeObjectURL(zipUrl);
+      }, 1000);
+      
+      console.log('ZIP download completed successfully');
+      setShowDownloadModal(false);
+      
+      // Show success message
+      alert(`Successfully downloaded ZIP file with ${fileCount} images!`);
+      
+    } catch (error) {
+      console.error('Error creating ZIP file:', error);
+      alert(`Error creating ZIP file: ${error.message}`);
+      setUploadError(`Failed to create ZIP file: ${error.message}`);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleEditNumber = () => {
     setIsEditingNumber(true);
     setEditNumber((currentResultIndex + 1).toString());
@@ -326,6 +487,12 @@ export const useImageProcessing = () => {
     navigateBySeven,
     navigateToIndex,
     downloadImage,
+    showDownloadOptions,
+    closeDownloadModal,
+    downloadCurrentImage,
+    downloadAllImages,
+    showDownloadModal,
+    isDownloading,
     handleEditNumber,
     handleSaveNumber,
     handleEditInputChange,
