@@ -6,17 +6,13 @@ import './index.css';
 import Header from './components/layout/Header';
 import Hero from './components/sections/Hero';
 import Features from './components/sections/Features';
-import Demo from './components/sections/Demo';
 import Footer from './components/sections/Footer';
 import LoginModal from './components/modals/LoginModal';
 import ReportsModal from './components/modals/ReportsModal';
-import ImageModal from './components/modals/ImageModal';
-import LoadingSpinner from './components/ui/LoadingSpinner';
 import AcaciaSearch from './pages/AcaciaSearch';
 
 // Hooks
 import { useAuth } from './hooks/useAuth';
-import { useImageProcessing } from './hooks/useImageProcessing';
 import { useReports } from './hooks/useReports';
 
 // Home component for the main page
@@ -25,7 +21,6 @@ const Home = () => {
   
   // Custom hooks
   const auth = useAuth();
-  const imageProcessing = useImageProcessing();
   const reports = useReports(auth.isLoggedIn);
 
   // Navigation handlers
@@ -93,6 +88,8 @@ const Home = () => {
         loginForm={auth.loginForm}
         onFormChange={auth.handleLoginFormChange}
         onSubmit={auth.handleLoginSubmit}
+        isLoading={auth.isLoading}
+        error={auth.error}
       />
 
       <ReportsModal

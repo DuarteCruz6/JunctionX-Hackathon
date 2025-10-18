@@ -16,7 +16,7 @@ const ImageModal = ({ isOpen, onClose, imageSrc, imageName }) => {
         </button>
         <img
           src={imageSrc}
-          alt="Input Image Full Size"
+          alt="Full size view"
           className="w-full h-full object-contain"
         />
         <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2">

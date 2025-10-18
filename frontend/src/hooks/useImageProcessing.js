@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { uploadImages } from '../services/api.js';
 
 export const useImageProcessing = () => {
   const [selectedImages, setSelectedImages] = useState([]);
@@ -9,6 +10,7 @@ export const useImageProcessing = () => {
   const [editNumber, setEditNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
 
   const handleFileChange = async (event) => {
     const files = Array.from(event.target.files);
@@ -17,22 +19,46 @@ export const useImageProcessing = () => {
     if (imageFiles.length === 0) return;
     
     setIsUploading(true);
+    setUploadError(null);
     
-    // Simulate upload delay (1-3 seconds)
-    const uploadTime = Math.random() * 2000 + 1000; // 1-3 seconds
-    await new Promise(resolve => setTimeout(resolve, uploadTime));
-    
-    // Create preview URLs for all images, but only show first 12 in grid
-    const imagePreviews = imageFiles.map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
-      name: file.name
-    }));
-    
-    setSelectedImages(imagePreviews);
-    setIsUploading(false);
-    // Reset the input so it can be used again
-    event.target.value = '';
+    try {
+      // Actually upload images to backend
+      const uploadResponse = await uploadImages(imageFiles);
+      
+      if (uploadResponse.success && uploadResponse.results) {
+        // Create preview URLs and store upload results
+        const imagePreviews = imageFiles.map((file, index) => ({
+          file,
+          preview: URL.createObjectURL(file),
+          name: file.name,
+          imageId: uploadResponse.results[index]?.image_id,
+          s3Url: uploadResponse.results[index]?.s3_url,
+          uploadDate: uploadResponse.results[index]?.date
+        }));
+        
+        setSelectedImages(imagePreviews);
+        console.log('Images uploaded successfully:', uploadResponse.results);
+      } else {
+        throw new Error('Upload failed: Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError(`Upload failed: ${error.message}`);
+      
+      // Still create previews for user to see what they selected
+      const imagePreviews = imageFiles.map(file => ({
+        file,
+        preview: URL.createObjectURL(file),
+        name: file.name,
+        uploadError: true
+      }));
+      
+      setSelectedImages(imagePreviews);
+    } finally {
+      setIsUploading(false);
+      // Reset the input so it can be used again
+      event.target.value = '';
+    }
   };
 
   const handleAddMoreFiles = async (event) => {
@@ -42,23 +68,48 @@ export const useImageProcessing = () => {
     if (imageFiles.length === 0) return;
     
     setIsUploading(true);
+    setUploadError(null);
     
-    // Simulate upload delay (1-3 seconds)
-    const uploadTime = Math.random() * 2000 + 1000; // 1-3 seconds
-    await new Promise(resolve => setTimeout(resolve, uploadTime));
-    
-    // Create preview URLs for new images
-    const newImagePreviews = imageFiles.map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
-      name: file.name
-    }));
-    
-    // Add new images to existing ones
-    setSelectedImages(prev => [...prev, ...newImagePreviews]);
-    setIsUploading(false);
-    // Reset the input so it can be used again
-    event.target.value = '';
+    try {
+      // Actually upload images to backend
+      const uploadResponse = await uploadImages(imageFiles);
+      
+      if (uploadResponse.success && uploadResponse.results) {
+        // Create preview URLs for new images
+        const newImagePreviews = imageFiles.map((file, index) => ({
+          file,
+          preview: URL.createObjectURL(file),
+          name: file.name,
+          imageId: uploadResponse.results[index]?.image_id,
+          s3Url: uploadResponse.results[index]?.s3_url,
+          uploadDate: uploadResponse.results[index]?.date
+        }));
+        
+        // Add new images to existing ones
+        setSelectedImages(prev => [...prev, ...newImagePreviews]);
+        console.log('Additional images uploaded successfully:', uploadResponse.results);
+      } else {
+        throw new Error('Upload failed: Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError(`Upload failed: ${error.message}`);
+      
+      // Still create previews for user to see what they selected
+      const newImagePreviews = imageFiles.map(file => ({
+        file,
+        preview: URL.createObjectURL(file),
+        name: file.name,
+        uploadError: true
+      }));
+      
+      // Add new images to existing ones even if upload failed
+      setSelectedImages(prev => [...prev, ...newImagePreviews]);
+    } finally {
+      setIsUploading(false);
+      // Reset the input so it can be used again
+      event.target.value = '';
+    }
   };
 
   const handleProcessImages = async () => {
@@ -170,6 +221,7 @@ export const useImageProcessing = () => {
     handleEditKeyPress,
     removeImage,
     isLoading,
-    isUploading
+    isUploading,
+    uploadError
   };
 };

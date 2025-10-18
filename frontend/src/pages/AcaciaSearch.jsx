@@ -131,6 +131,7 @@ const AcaciaSearch = () => {
           onRemoveImage={imageProcessing.removeImage}
           isLoading={imageProcessing.isLoading}
           isUploading={imageProcessing.isUploading}
+          uploadError={imageProcessing.uploadError}
         />
 
         {/* Footer */}

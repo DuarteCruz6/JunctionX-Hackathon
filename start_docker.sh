@@ -43,7 +43,7 @@ echo "🐳 Building and starting services..."
 echo ""
 
 # Build and start services
-docker-compose up --build
+docker compose up --build
 
 echo ""
 echo "🛑 Services stopped"
