@@ -50,18 +50,17 @@ services:
   frontend:
     build:
       context: ./frontend
-      target: frontend
+      dockerfile: Dockerfile.dev
     container_name: frontend
-    working_dir: /app
-    command: sh -c "npm install && npm start"
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
       - REACT_APP_API_URL=http://localhost:8000
+      - WATCHPACK_POLLING=true
     depends_on:
       - backend
