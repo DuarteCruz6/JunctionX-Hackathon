@@ -37,8 +37,10 @@ export const useAuth = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
-    if (error) setError('');
+    // Clear error when user starts typing (with a small delay to avoid flickering)
+    if (error) {
+      setTimeout(() => setError(''), 100);
+    }
   };
 
   const handleLoginSubmit = async (event) => {
@@ -83,6 +85,8 @@ export const useAuth = () => {
       }
     } catch (error) {
       console.error('❌ Authentication error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
       
       // Handle specific Firebase auth errors
       let errorMessage = 'An error occurred during authentication.';
@@ -94,8 +98,11 @@ export const useAuth = () => {
         case 'auth/wrong-password':
           errorMessage = 'Incorrect password. Please try again.';
           break;
+        case 'auth/invalid-credential':
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+          break;
         case 'auth/invalid-email':
-          errorMessage = 'Invalid email address.';
+          errorMessage = 'Invalid email address format.';
           break;
         case 'auth/user-disabled':
           errorMessage = 'This account has been disabled.';
@@ -109,11 +116,20 @@ export const useAuth = () => {
         case 'auth/too-many-requests':
           errorMessage = 'Too many failed attempts. Please try again later.';
           break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your connection and try again.';
+          break;
+        case 'auth/operation-not-allowed':
+          errorMessage = 'This sign-in method is not enabled.';
+          break;
         default:
-          errorMessage = error.message || 'Authentication failed. Please try again.';
+          // For any unhandled errors, show a more generic message
+          console.log('Unhandled Firebase error:', error.code, error.message);
+          errorMessage = 'Login failed. Please check your email and password and try again.';
       }
       
       setError(errorMessage);
+      console.log('Setting error message:', errorMessage);
     } finally {
       setIsLoading(false);
     }

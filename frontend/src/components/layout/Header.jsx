@@ -28,7 +28,21 @@ const Header = ({
           
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
-              <a href="#features" className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Services</a>
+              <button 
+                onClick={() => {
+                  navigate('/');
+                  // Scroll to features section after navigation
+                  setTimeout(() => {
+                    const featuresSection = document.getElementById('features');
+                    if (featuresSection) {
+                      featuresSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }, 100);
+                }}
+                className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Services
+              </button>
               <button 
                 onClick={() => navigate('/public-demo')}
                 className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
@@ -42,15 +56,12 @@ const Header = ({
                 Reports
               </button>
               {isLoggedIn ? (
-                <div className="flex items-center space-x-4">
-                  <span className="text-slate-300 text-sm">Welcome back!</span>
-                  <button 
-                    onClick={onLogout}
-                    className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
+                <button 
+                  onClick={onLogout}
+                  className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Logout
+                </button>
               ) : (
                 <button 
                   onClick={onLoginClick}
