@@ -64,7 +64,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Import our modules
-from app.controllers import upload, predict
+from app.controllers import upload, predict, reports
 from app.middlewares.auth import verify_firebase_token
 
 app = FastAPI(
@@ -85,6 +85,7 @@ app.add_middleware(
 # Include routers
 app.include_router(upload.router, prefix="/api/v1", tags=["upload"])
 app.include_router(predict.router, prefix="/api/v1", tags=["predict"])
+app.include_router(reports.router, prefix="/api/v1", tags=["reports"])
 
 @app.get("/")
 async def root():

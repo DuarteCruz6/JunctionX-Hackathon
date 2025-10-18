@@ -6,9 +6,30 @@ from datetime import datetime
 import time
 import logging
 import json
+import uuid
 
 # Get module logger
 logger = logging.getLogger(__name__)
+
+def convert_firestore_datetime(obj):
+    """
+    Convert Firestore datetime objects to serializable format.
+    
+    Args:
+        obj: Object that may contain Firestore datetime objects
+    
+    Returns:
+        Object with Firestore datetime objects converted to ISO strings
+    """
+    if hasattr(obj, 'timestamp'):
+        # This is a Firestore DatetimeWithNanoseconds object
+        return obj.isoformat()
+    elif isinstance(obj, dict):
+        return {key: convert_firestore_datetime(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_firestore_datetime(item) for item in obj]
+    else:
+        return obj
 
 class FirebaseDB:
     """Firebase Firestore database utility."""
@@ -18,7 +39,8 @@ class FirebaseDB:
         self.collections = {
             'images': 'images',
             'users': 'users',
-            'predictions': 'predictions'
+            'predictions': 'predictions',
+            'submissions': 'submissions'
         }
     
     async def save_image_metadata(self, image_id: str, metadata: Dict[str, Any]) -> bool:
@@ -107,6 +129,9 @@ class FirebaseDB:
             process_start = time.time()
             metadata = doc.to_dict()
             
+            # Convert Firestore datetime objects to serializable format
+            metadata = convert_firestore_datetime(metadata)
+            
             # Check if user owns this image
             if metadata.get('user_id') != user_id:
                 total_time = time.time() - start_time
@@ -179,7 +204,8 @@ class FirebaseDB:
         """
         try:
             images_ref = self.db.collection(self.collections['images'])
-            query = images_ref.where('user_id', '==', user_id).order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit)
+            # Query without ordering to avoid composite index requirement
+            query = images_ref.where('user_id', '==', user_id).limit(limit)
             
             docs = query.stream()
             images = []
@@ -188,6 +214,9 @@ class FirebaseDB:
                 image_data = doc.to_dict()
                 image_data['image_id'] = doc.id
                 images.append(image_data)
+            
+            # Sort in Python instead of Firestore to avoid index requirement
+            images.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
             
             return images
             
@@ -221,6 +250,148 @@ class FirebaseDB:
             
         except Exception as e:
             raise Exception(f"Failed to save prediction log: {str(e)}")
+    
+    async def create_submission(self, submission_data: Dict[str, Any]) -> str:
+        """
+        Create a new submission record.
+        
+        Args:
+            submission_data: Submission metadata dictionary
+        
+        Returns:
+            str: Submission ID
+        """
+        try:
+            submission_id = str(uuid.uuid4())
+            submission_data['submission_id'] = submission_id
+            submission_data['created_at'] = datetime.utcnow()
+            submission_data['updated_at'] = datetime.utcnow()
+            
+            doc_ref = self.db.collection(self.collections['submissions']).document(submission_id)
+            doc_ref.set(submission_data)
+            
+            logger.info(f"Created submission: {submission_id}")
+            return submission_id
+            
+        except Exception as e:
+            raise Exception(f"Failed to create submission: {str(e)}")
+    
+    async def update_submission(self, submission_id: str, update_data: Dict[str, Any]) -> bool:
+        """
+        Update submission metadata.
+        
+        Args:
+            submission_id: Submission identifier
+            update_data: Fields to update
+        
+        Returns:
+            bool: True if successful
+        """
+        try:
+            update_data['updated_at'] = datetime.utcnow()
+            
+            doc_ref = self.db.collection(self.collections['submissions']).document(submission_id)
+            doc_ref.update(update_data)
+            
+            logger.info(f"Updated submission: {submission_id}")
+            return True
+            
+        except Exception as e:
+            raise Exception(f"Failed to update submission: {str(e)}")
+    
+    async def get_user_submissions(self, user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """
+        Get user's submissions ordered by most recent first.
+        
+        Args:
+            user_id: Firebase user ID
+            limit: Maximum number of submissions to return
+        
+        Returns:
+            list: List of submission dictionaries
+        """
+        try:
+            submissions_ref = self.db.collection(self.collections['submissions'])
+            # Query without ordering to avoid composite index requirement
+            query = submissions_ref.where('user_id', '==', user_id).limit(limit)
+            
+            docs = query.stream()
+            submissions = []
+            
+            for doc in docs:
+                submission_data = doc.to_dict()
+                submission_data['submission_id'] = doc.id
+                submissions.append(submission_data)
+            
+            # Sort in Python instead of Firestore to avoid index requirement
+            def get_sort_key(submission):
+                created_at = submission.get('created_at')
+                if hasattr(created_at, 'timestamp'):
+                    # Firestore datetime object
+                    return created_at.timestamp()
+                elif isinstance(created_at, str):
+                    # ISO string
+                    try:
+                        return datetime.fromisoformat(created_at.replace('Z', '+00:00')).timestamp()
+                    except:
+                        return 0
+                elif isinstance(created_at, datetime):
+                    # Python datetime object
+                    return created_at.timestamp()
+                else:
+                    return 0
+            
+            submissions.sort(key=get_sort_key, reverse=True)
+            
+            logger.info(f"Retrieved {len(submissions)} submissions for user: {user_id}")
+            return submissions
+            
+        except Exception as e:
+            raise Exception(f"Failed to get user submissions: {str(e)}")
+    
+    async def get_submission_with_images(self, submission_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get submission with all its images.
+        
+        Args:
+            submission_id: Submission identifier
+            user_id: Firebase user ID for authorization
+        
+        Returns:
+            dict: Submission with images or None if not found
+        """
+        try:
+            # Get submission
+            submission_doc = self.db.collection(self.collections['submissions']).document(submission_id).get()
+            
+            if not submission_doc.exists:
+                return None
+            
+            submission_data = submission_doc.to_dict()
+            
+            # Verify ownership
+            if submission_data.get('user_id') != user_id:
+                logger.warning(f"Unauthorized access to submission {submission_id} by user {user_id}")
+                return None
+            
+            # Get all images for this submission
+            image_ids = submission_data.get('image_ids', [])
+            images = []
+            
+            for image_id in image_ids:
+                image_doc = self.db.collection(self.collections['images']).document(image_id).get()
+                if image_doc.exists:
+                    image_data = image_doc.to_dict()
+                    image_data['image_id'] = image_id
+                    images.append(image_data)
+            
+            submission_data['images'] = images
+            submission_data['submission_id'] = submission_id
+            
+            return submission_data
+            
+        except Exception as e:
+            raise Exception(f"Failed to get submission with images: {str(e)}")
 
 # Global Firebase DB instance
 firebase_db = FirebaseDB()
@@ -245,3 +416,19 @@ async def get_user_images(user_id: str, limit: int = 50) -> list:
 async def save_prediction_log(image_id: str, user_id: str, prediction_data: Dict[str, Any]) -> bool:
     """Save prediction log to Firestore."""
     return await firebase_db.save_prediction_log(image_id, user_id, prediction_data)
+
+async def create_submission(submission_data: Dict[str, Any]) -> str:
+    """Create a new submission record."""
+    return await firebase_db.create_submission(submission_data)
+
+async def update_submission(submission_id: str, update_data: Dict[str, Any]) -> bool:
+    """Update submission metadata."""
+    return await firebase_db.update_submission(submission_id, update_data)
+
+async def get_user_submissions(user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+    """Get user's submissions from Firestore."""
+    return await firebase_db.get_user_submissions(user_id, limit)
+
+async def get_submission_with_images(submission_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """Get submission with all its images."""
+    return await firebase_db.get_submission_with_images(submission_id, user_id)

@@ -21,8 +21,16 @@ const AcaciaSearch = () => {
   
   // Custom hooks
   const auth = useAuth();
-  const imageProcessing = useImageProcessing();
   const reports = useReports(auth.isLoggedIn);
+  
+  // Handle images uploaded - this will be passed to useImageProcessing
+  const handleImagesUploaded = (uploadedImages) => {
+    // This will be called when images are uploaded
+    // The reports system will automatically refresh to show new submissions
+    console.log('Images uploaded, reports will refresh automatically');
+  };
+  
+  const imageProcessing = useImageProcessing(handleImagesUploaded);
 
   // Navigation handlers
   const handleReportsClick = () => {

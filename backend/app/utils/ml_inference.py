@@ -81,7 +81,7 @@ class HuggingFaceML:
                 
                 # Process results
                 process_start = time.time()
-                processed_results = self._process_results(results)
+                processed_results = self._process_results(results, start_time)
                 stage_times['processing'] = time.time() - process_start
                 
                 # Calculate total time and log performance metrics
@@ -174,7 +174,7 @@ class HuggingFaceML:
         
         raise Exception("Model failed to load after multiple attempts")
     
-    def _process_results(self, raw_results: List[Dict]) -> Dict[str, Any]:
+    def _process_results(self, raw_results: List[Dict], start_time: float) -> Dict[str, Any]:
         """
         Process raw ML results into structured format.
         
@@ -210,7 +210,7 @@ class HuggingFaceML:
             'num_detections': num_detections,
             'average_confidence': round(avg_confidence, 3),
             'coverage_percentage': round(coverage_percentage, 2),
-            'processing_time': time.time(),
+            'processing_time': round(time.time() - start_time, 2),  # Calculate actual processing time
             'model_version': self.model_name,
             'confidence_threshold': 0.3
         }

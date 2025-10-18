@@ -198,7 +198,10 @@ const Demo = ({
                 <div className="flex justify-end items-center">
                   <div className="flex items-center space-x-4">
                     <div className="text-sm text-slate-400">
-                      Confidence: {(processedResults[currentResultIndex]?.confidence * 100).toFixed(1)}%
+                      Confidence: {processedResults[currentResultIndex]?.status === 'api_error' 
+                        ? 'N/A' 
+                        : `${(processedResults[currentResultIndex]?.confidence * 100).toFixed(1)}%`
+                      }
                     </div>
                     <button
                       onClick={onShowDownloadOptions}
@@ -211,6 +214,23 @@ const Demo = ({
                     </button>
                   </div>
                 </div>
+
+                {/* Error Banner */}
+                {processedResults[currentResultIndex]?.status === 'api_error' && (
+                  <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-6">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <div>
+                        <h4 className="text-red-400 font-semibold">API Not Configured</h4>
+                        <p className="text-red-300 text-sm mt-1">
+                          The analysis API is not available. Please check your backend configuration.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Main Results Display - Full Screen Layout */}
                 <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
@@ -245,19 +265,58 @@ const Demo = ({
                       <div className="space-y-3 text-sm">
                         <div>
                           <div className="text-slate-400">Processing Time</div>
-                          <div className="text-white font-semibold">{processedResults[currentResultIndex]?.processingTime}s</div>
+                          <div className="text-white font-semibold">
+                            {processedResults[currentResultIndex]?.status === 'api_error' 
+                              ? 'N/A' 
+                              : `${processedResults[currentResultIndex]?.processingTime || 0}s`
+                            }
+                          </div>
                         </div>
                         <div>
                           <div className="text-slate-400">Detected Areas</div>
-                          <div className="text-white font-semibold">{processedResults[currentResultIndex]?.detectedAreas}</div>
+                          <div className="text-white font-semibold">
+                            {processedResults[currentResultIndex]?.status === 'api_error' 
+                              ? 'N/A' 
+                              : processedResults[currentResultIndex]?.detectedAreas || 0
+                            }
+                          </div>
                         </div>
                         <div>
                           <div className="text-slate-400">Confidence</div>
-                          <div className="text-emerald-400 font-semibold">{(processedResults[currentResultIndex]?.confidence * 100).toFixed(1)}%</div>
+                          <div className={`font-semibold ${
+                            processedResults[currentResultIndex]?.status === 'api_error' 
+                              ? 'text-red-400' 
+                              : 'text-emerald-400'
+                          }`}>
+                            {processedResults[currentResultIndex]?.status === 'api_error' 
+                              ? 'N/A' 
+                              : `${(processedResults[currentResultIndex]?.confidence * 100).toFixed(1)}%`
+                            }
+                          </div>
                         </div>
                         <div>
                           <div className="text-slate-400">Status</div>
-                          <div className="text-green-400 font-semibold">Completed</div>
+                          <div className={`font-semibold ${
+                            processedResults[currentResultIndex]?.status === 'api_error' 
+                              ? 'text-red-400' 
+                              : 'text-green-400'
+                          }`}>
+                            {processedResults[currentResultIndex]?.status === 'api_error' 
+                              ? 'API Error' 
+                              : 'Completed'
+                            }
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">Species</div>
+                          <div className="text-white font-semibold">
+                            {processedResults[currentResultIndex]?.status === 'api_error' 
+                              ? 'N/A' 
+                              : processedResults[currentResultIndex]?.species?.length > 0 
+                                ? processedResults[currentResultIndex].species.join(', ')
+                                : 'Unknown'
+                            }
+                          </div>
                         </div>
                       </div>
                     </div>

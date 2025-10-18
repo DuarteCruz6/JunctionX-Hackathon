@@ -5,12 +5,16 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import Footer from '../components/sections/Footer';
 import LoginModal from '../components/modals/LoginModal';
+import DownloadOptionsModal from '../components/modals/DownloadOptionsModal';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import PhotoNavigation from '../components/ui/PhotoNavigation';
 
 // Hooks
 import { useAuth } from '../hooks/useAuth';
-import { useReports } from '../hooks/useReports';
+import { useReportsData } from '../hooks/useReportsData';
+
+// Services
+import { downloadImage } from '../services/api';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -19,104 +23,12 @@ const Reports = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   
   // Custom hooks
   const auth = useAuth();
-  const reports = useReports(auth.isLoggedIn);
-
-  // Mock data for demonstration - in real app, this would come from API
-  const [reportsHistory, setReportsHistory] = useState([
-    {
-      id: 1,
-      date: '2024-01-15',
-      time: '14:30',
-      searchType: 'Acacia Detection',
-      imageCount: 3,
-      processedResults: [
-        {
-          inputImage: '/api/placeholder/400/300',
-          inputName: 'forest_001.jpg',
-          outputImage: '/api/placeholder/600/400',
-          confidence: 0.945,
-          detectedAreas: 12,
-          processingTime: 2.3,
-          species: ['Acacia dealbata', 'Acacia melanoxylon']
-        },
-        {
-          inputImage: '/api/placeholder/400/300',
-          inputName: 'forest_002.jpg',
-          outputImage: '/api/placeholder/600/400',
-          confidence: 0.923,
-          detectedAreas: 8,
-          processingTime: 1.8,
-          species: ['Acacia dealbata']
-        },
-        {
-          inputImage: '/api/placeholder/400/300',
-          inputName: 'forest_003.jpg',
-          outputImage: '/api/placeholder/600/400',
-          confidence: 0.967,
-          detectedAreas: 15,
-          processingTime: 2.1,
-          species: ['Acacia melanoxylon', 'Acacia mearnsii']
-        }
-      ]
-    },
-    {
-      id: 2,
-      date: '2024-01-14',
-      time: '09:15',
-      searchType: 'Forest Analysis',
-      imageCount: 5,
-      processedResults: [
-        {
-          inputImage: '/api/placeholder/400/300',
-          inputName: 'forest_004.jpg',
-          outputImage: '/api/placeholder/600/400',
-          confidence: 0.872,
-          detectedAreas: 6,
-          processingTime: 1.9,
-          species: ['Acacia longifolia']
-        },
-        {
-          inputImage: '/api/placeholder/400/300',
-          inputName: 'forest_005.jpg',
-          outputImage: '/api/placeholder/600/400',
-          confidence: 0.891,
-          detectedAreas: 10,
-          processingTime: 2.0,
-          species: ['Acacia longifolia', 'Acacia dealbata']
-        }
-      ]
-    },
-    {
-      id: 3,
-      date: '2024-01-13',
-      time: '16:45',
-      searchType: 'Species Identification',
-      imageCount: 2,
-      processedResults: [
-        {
-          inputImage: '/api/placeholder/400/300',
-          inputName: 'forest_006.jpg',
-          outputImage: '/api/placeholder/600/400',
-          confidence: 0.918,
-          detectedAreas: 20,
-          processingTime: 2.5,
-          species: ['Acacia dealbata', 'Acacia mearnsii', 'Acacia melanoxylon']
-        },
-        {
-          inputImage: '/api/placeholder/400/300',
-          inputName: 'forest_007.jpg',
-          outputImage: '/api/placeholder/600/400',
-          confidence: 0.934,
-          detectedAreas: 18,
-          processingTime: 2.2,
-          species: ['Acacia dealbata', 'Acacia mearnsii']
-        }
-      ]
-    }
-  ]);
+  const reportsData = useReportsData(auth.isLoggedIn);
 
   // Check authentication status
   useEffect(() => {
@@ -137,10 +49,10 @@ const Reports = () => {
 
   // Set first report as selected by default
   useEffect(() => {
-    if (reportsHistory.length > 0 && !selectedReport) {
-      setSelectedReport(reportsHistory[0]);
+    if (reportsData.reports.length > 0 && !selectedReport) {
+      setSelectedReport(reportsData.reports[0]);
     }
-  }, [reportsHistory, selectedReport]);
+  }, [reportsData.reports, selectedReport]);
 
   const handleReportSelect = (report) => {
     setSelectedReport(report);
@@ -148,9 +60,9 @@ const Reports = () => {
   };
 
   const handleNavigateResult = (direction) => {
-    if (!selectedReport?.processedResults) return;
+    if (!selectedReport?.images) return;
     
-    if (direction === 'next' && currentResultIndex < selectedReport.processedResults.length - 1) {
+    if (direction === 'next' && currentResultIndex < selectedReport.images.length - 1) {
       setCurrentResultIndex(currentResultIndex + 1);
     } else if (direction === 'prev' && currentResultIndex > 0) {
       setCurrentResultIndex(currentResultIndex - 1);
@@ -158,16 +70,16 @@ const Reports = () => {
   };
 
   const handleNavigateToIndex = (index) => {
-    if (!selectedReport?.processedResults) return;
-    if (index >= 0 && index < selectedReport.processedResults.length) {
+    if (!selectedReport?.images) return;
+    if (index >= 0 && index < selectedReport.images.length) {
       setCurrentResultIndex(index);
     }
   };
 
   const handleNavigateBySeven = (direction) => {
-    if (!selectedReport?.processedResults) return;
+    if (!selectedReport?.images) return;
     
-    const totalResults = selectedReport.processedResults.length;
+    const totalResults = selectedReport.images.length;
     const currentPage = Math.floor(currentResultIndex / 7);
     
     if (direction === 'next') {
@@ -195,12 +107,186 @@ const Reports = () => {
     return timeString;
   };
 
-  if (isCheckingAuth || !auth.isLoggedIn) {
+  // Download functionality
+  const showDownloadOptions = () => {
+    setShowDownloadModal(true);
+  };
+
+  const closeDownloadModal = () => {
+    setShowDownloadModal(false);
+  };
+
+  const downloadCurrentImage = async () => {
+    if (!selectedReport?.images?.[currentResultIndex]) return;
+    
+    const currentImage = selectedReport.images[currentResultIndex];
+    const imageId = currentImage.image_id;
+    const filename = `processed_${currentImage.input_name || 'image'}.jpg`;
+    
+    console.log('Downloading current image via backend:', {
+      imageId,
+      filename,
+      currentImage
+    });
+    
+    try {
+      // Use the backend endpoint to download the image
+      console.log('Fetching image via backend API...');
+      const blob = await downloadImage(imageId);
+      
+      console.log('Blob received from backend:', {
+        size: blob.size,
+        type: blob.type
+      });
+      
+      if (!blob || blob.size === 0) {
+        throw new Error('Invalid or empty image blob received from backend');
+      }
+      
+      // Create a blob URL and download
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL after a delay
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
+      
+      console.log('Download completed successfully');
+      setShowDownloadModal(false);
+      
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      alert(`Failed to download image: ${error.message}`);
+    }
+  };
+
+  const downloadAllImages = async () => {
+    if (!selectedReport?.images || selectedReport.images.length === 0) {
+      alert('No images to download');
+      return;
+    }
+    
+    setIsDownloading(true);
+    console.log('Starting ZIP download process via backend...');
+    
+    try {
+      // Use JSZip from global scope (loaded via script tag)
+      if (typeof window.JSZip === 'undefined') {
+        throw new Error('JSZip library is not loaded. Please refresh the page and try again.');
+      }
+      
+      const zip = new window.JSZip();
+      let successfulDownloads = 0;
+      
+      // Add each image to the zip using backend endpoint
+      for (let i = 0; i < selectedReport.images.length; i++) {
+        const image = selectedReport.images[i];
+        const imageId = image.image_id;
+        
+        console.log(`Processing image ${i + 1}/${selectedReport.images.length}:`, {
+          imageId,
+          inputName: image.input_name,
+          image
+        });
+        
+        try {
+          // Use the backend endpoint to download the image
+          console.log(`Fetching image ${i + 1} via backend API...`);
+          const blob = await downloadImage(imageId);
+          
+          console.log(`Blob received for image ${i + 1}:`, {
+            size: blob.size,
+            type: blob.type
+          });
+          
+          if (!blob || blob.size === 0) {
+            throw new Error('Invalid or empty image blob received from backend');
+          }
+          
+          // Create a clean filename
+          const cleanFilename = `processed_image_${i + 1}_${(image.input_name || 'image').replace(/[^a-zA-Z0-9.-]/g, '_')}.jpg`;
+          
+          // Add to zip
+          zip.file(cleanFilename, blob);
+          successfulDownloads++;
+          console.log(`Successfully added image ${i + 1} to ZIP: ${cleanFilename}`);
+          
+        } catch (imageError) {
+          console.error(`Error processing image ${i + 1}:`, imageError);
+          // Continue with other images instead of failing completely
+          continue;
+        }
+      }
+      
+      console.log(`Successfully processed ${successfulDownloads}/${selectedReport.images.length} images`);
+      
+      // Check if any files were added to the zip
+      const fileCount = Object.keys(zip.files).length;
+      if (fileCount === 0) {
+        throw new Error('No valid images could be added to the ZIP file. All images failed to download.');
+      }
+      
+      console.log(`Generating ZIP file with ${fileCount} images...`);
+      
+      // Generate the zip file with compression
+      const zipBlob = await zip.generateAsync({ 
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: {
+          level: 6
+        }
+      });
+      
+      console.log('ZIP file generated:', {
+        size: zipBlob.size,
+        fileCount
+      });
+      
+      if (zipBlob.size === 0) {
+        throw new Error('Generated ZIP file is empty');
+      }
+      
+      // Create download link
+      const link = document.createElement('a');
+      const zipUrl = URL.createObjectURL(zipBlob);
+      link.href = zipUrl;
+      link.download = `acacia_report_${selectedReport.id}_${new Date().toISOString().split('T')[0]}.zip`;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the object URL after a delay
+      setTimeout(() => {
+        URL.revokeObjectURL(zipUrl);
+      }, 1000);
+      
+      console.log('ZIP download completed successfully');
+      setShowDownloadModal(false);
+      
+    } catch (error) {
+      console.error('Error creating ZIP file:', error);
+      alert(`Failed to create ZIP file: ${error.message}`);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  if (isCheckingAuth || !auth.isLoggedIn || reportsData.isLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <LoadingSpinner 
           isOpen={true}
-          message={isCheckingAuth ? "Checking authentication..." : "Redirecting to login..."}
+          message={isCheckingAuth ? "Checking authentication..." : reportsData.isLoading ? "Loading reports..." : "Redirecting to login..."}
         />
       </div>
     );
@@ -255,40 +341,82 @@ const Reports = () => {
 
             {/* Search History List */}
             <div className="overflow-y-auto h-full pb-20">
-              {reportsHistory.map((report) => (
-                <div
-                  key={report.id}
-                  onClick={() => handleReportSelect(report)}
-                  className={`p-4 border-b border-slate-700/30 cursor-pointer transition-colors ${
-                    selectedReport?.id === report.id
-                      ? 'bg-emerald-600/20 border-emerald-500/50'
-                      : 'hover:bg-slate-700/50'
-                  }`}
-                >
-                  {!isSidebarCollapsed ? (
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-white font-medium text-sm">{report.searchType}</h3>
-                        <span className="text-slate-400 text-xs">
-                          {formatDate(report.date)} {formatTime(report.time)}
-                        </span>
-                      </div>
-                      <p className="text-slate-300 text-xs mb-1">
-                        {report.imageCount} image{report.imageCount !== 1 ? 's' : ''} processed
-                      </p>
-                      <p className="text-slate-400 text-xs">
-                        {report.processedResults?.reduce((total, result) => total + result.detectedAreas, 0) || 0} areas detected
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex justify-center">
-                      <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">{report.id}</span>
-                      </div>
-                    </div>
-                  )}
+              {reportsData.error && (
+                <div className="p-4 m-4 bg-red-900/50 border border-red-500/50 rounded-lg">
+                  <div className="text-red-400 text-sm">
+                    <strong>Error:</strong> {reportsData.error}
+                  </div>
+                  <button
+                    onClick={reportsData.refreshReports}
+                    className="mt-2 text-red-300 hover:text-red-200 text-xs underline"
+                  >
+                    Retry
+                  </button>
                 </div>
-              ))}
+              )}
+              
+              {reportsData.reports.length === 0 && !reportsData.isLoading && !reportsData.error ? (
+                <div className="p-4 text-center text-slate-400">
+                  <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-sm">No submissions yet</p>
+                  <p className="text-xs text-slate-500 mt-1">Upload images to see your reports here</p>
+                </div>
+              ) : (
+                reportsData.reports.map((report) => (
+                  <div
+                    key={report.id}
+                    onClick={() => handleReportSelect(report)}
+                    className={`p-4 border-b border-slate-700/30 cursor-pointer transition-colors ${
+                      selectedReport?.id === report.id
+                        ? 'bg-emerald-600/20 border-emerald-500/50'
+                        : 'hover:bg-slate-700/50'
+                    }`}
+                  >
+                    {!isSidebarCollapsed ? (
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="text-white font-medium text-sm">Acacia Detection</h3>
+                          <span className="text-slate-400 text-xs">
+                            {formatDate(report.date)} {formatTime(report.time)}
+                          </span>
+                        </div>
+                        <p className="text-slate-300 text-xs mb-1">
+                          {report.image_count} image{report.image_count !== 1 ? 's' : ''} processed
+                        </p>
+                        <p className="text-slate-400 text-xs">
+                          {report.total_detected_areas} areas detected
+                        </p>
+                        <p className="text-slate-400 text-xs">
+                          Avg confidence: {(report.average_confidence * 100).toFixed(1)}%
+                        </p>
+                        <div className="flex items-center mt-1">
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            report.status === 'completed' ? 'bg-green-600/20 text-green-400' :
+                            report.status === 'processing' ? 'bg-yellow-600/20 text-yellow-400' :
+                            report.status === 'failed' ? 'bg-red-600/20 text-red-400' :
+                            'bg-slate-600/20 text-slate-400'
+                          }`}>
+                            {report.status}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex justify-center">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          report.status === 'completed' ? 'bg-green-600' :
+                          report.status === 'processing' ? 'bg-yellow-600' :
+                          report.status === 'failed' ? 'bg-red-600' :
+                          'bg-slate-600'
+                        }`}>
+                          <span className="text-white text-xs font-bold">{report.id}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -300,7 +428,7 @@ const Reports = () => {
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-4">
                     <h1 className="text-3xl font-bold text-white">
-                      {selectedReport.searchType}
+                      Acacia Detection Report
                     </h1>
                     <button
                       onClick={() => navigate('/')}
@@ -323,7 +451,7 @@ const Reports = () => {
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      {selectedReport.imageCount} image{selectedReport.imageCount !== 1 ? 's' : ''}
+                      {selectedReport.image_count} image{selectedReport.image_count !== 1 ? 's' : ''}
                     </span>
                   </div>
                 </div>
@@ -335,14 +463,22 @@ const Reports = () => {
                     <h2 className="text-2xl font-bold text-white">Analysis Results</h2>
                     <div className="flex items-center space-x-4">
                       <div className="text-sm text-slate-400">
-                        Confidence: {(selectedReport.processedResults[currentResultIndex]?.confidence * 100).toFixed(1)}%
+                        Confidence: {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                          ? 'N/A' 
+                          : `${(selectedReport.images[currentResultIndex]?.confidence * 100).toFixed(1)}%`
+                        }
                       </div>
-                      <button className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Download
-                      </button>
+                      {selectedReport.images && selectedReport.images.length > 0 && (
+                        <button 
+                          onClick={showDownloadOptions}
+                          className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Download
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -353,7 +489,7 @@ const Reports = () => {
                       <h4 className="text-lg font-semibold text-white mb-4">Input Image</h4>
                       <div className="relative cursor-pointer group mb-4">
                         <img
-                          src={selectedReport.processedResults[currentResultIndex]?.inputImage}
+                          src={selectedReport.images[currentResultIndex]?.inputImage}
                           alt="Input"
                           className="w-full h-64 object-cover rounded-lg border border-slate-600 hover:border-emerald-500 transition-colors"
                         />
@@ -367,28 +503,68 @@ const Reports = () => {
                         </div>
                       </div>
                       <p className="text-sm text-slate-400 mb-4 truncate">
-                        {selectedReport.processedResults[currentResultIndex]?.inputName}
+                        {selectedReport.images[currentResultIndex]?.input_name}
                       </p>
                       
                       {/* Analysis Details - Sidebar */}
                       <div className="bg-slate-700/50 rounded-lg p-4">
                         <h5 className="text-md font-semibold text-white mb-3">Analysis Summary</h5>
                         <div className="space-y-3 text-sm">
-                          <div>
-                            <div className="text-slate-400">Processing Time</div>
-                            <div className="text-white font-semibold">{selectedReport.processedResults[currentResultIndex]?.processingTime}s</div>
-                          </div>
-                          <div>
-                            <div className="text-slate-400">Detected Areas</div>
-                            <div className="text-white font-semibold">{selectedReport.processedResults[currentResultIndex]?.detectedAreas}</div>
-                          </div>
-                          <div>
-                            <div className="text-slate-400">Confidence</div>
-                            <div className="text-emerald-400 font-semibold">{(selectedReport.processedResults[currentResultIndex]?.confidence * 100).toFixed(1)}%</div>
-                          </div>
+                            <div>
+                              <div className="text-slate-400">Processing Time</div>
+                              <div className="text-white font-semibold">
+                                {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                                  ? 'N/A' 
+                                  : `${selectedReport.images[currentResultIndex]?.processingTime || 0}s`
+                                }
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-slate-400">Detected Areas</div>
+                              <div className="text-white font-semibold">
+                                {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                                  ? 'N/A' 
+                                  : selectedReport.images[currentResultIndex]?.detectedAreas || 0
+                                }
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-slate-400">Confidence</div>
+                              <div className={`font-semibold ${
+                                selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                                  ? 'text-red-400' 
+                                  : 'text-emerald-400'
+                              }`}>
+                                {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                                  ? 'N/A' 
+                                  : `${(selectedReport.images[currentResultIndex]?.confidence * 100 || 0).toFixed(1)}%`
+                                }
+                              </div>
+                            </div>
                           <div>
                             <div className="text-slate-400">Status</div>
-                            <div className="text-green-400 font-semibold">Completed</div>
+                            <div className={`font-semibold ${
+                              selectedReport.images[currentResultIndex]?.status === 'processed' ? 'text-green-400' :
+                              selectedReport.images[currentResultIndex]?.status === 'processing' ? 'text-yellow-400' :
+                              selectedReport.images[currentResultIndex]?.status === 'failed' ? 'text-red-400' :
+                              selectedReport.images[currentResultIndex]?.status === 'api_error' ? 'text-red-400' :
+                              'text-slate-400'
+                            }`}>
+                              {selectedReport.images[currentResultIndex]?.status === 'processed' ? 'Completed' :
+                               selectedReport.images[currentResultIndex]?.status === 'processing' ? 'Processing' :
+                               selectedReport.images[currentResultIndex]?.status === 'failed' ? 'Failed' :
+                               selectedReport.images[currentResultIndex]?.status === 'api_error' ? 'API Error' :
+                               'Unknown'}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-slate-400">Species</div>
+                            <div className="text-white font-semibold text-sm">
+                              {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                                ? 'N/A' 
+                                : selectedReport.images[currentResultIndex]?.species?.join(', ') || 'None detected'
+                              }
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -401,7 +577,7 @@ const Reports = () => {
                       {/* Navigation Above Image */}
                       <div className="flex justify-center mb-6">
                         <PhotoNavigation
-                          processedResults={selectedReport.processedResults}
+                          processedResults={selectedReport.images}
                           currentResultIndex={currentResultIndex}
                           onNavigateResult={handleNavigateResult}
                           onNavigateBySeven={handleNavigateBySeven}
@@ -411,14 +587,28 @@ const Reports = () => {
                       
                       <div className="relative h-[70vh] overflow-hidden flex items-center justify-center">
                         <img
-                          src={selectedReport.processedResults[currentResultIndex]?.outputImage}
+                          src={selectedReport.images[currentResultIndex]?.outputImage || selectedReport.images[currentResultIndex]?.inputImage}
                           alt="AI Analysis"
                           className="w-full h-full object-contain rounded-lg border border-slate-600 bg-slate-900/50"
                         />
                         <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-3">
                           <div className="text-sm text-white">
-                            <div className="font-semibold mb-1">Detected Areas: {selectedReport.processedResults[currentResultIndex]?.detectedAreas}</div>
-                            <div className="text-emerald-400">Confidence: {(selectedReport.processedResults[currentResultIndex]?.confidence * 100).toFixed(1)}%</div>
+                            <div className="font-semibold mb-1">
+                              Detected Areas: {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                                ? 'N/A' 
+                                : selectedReport.images[currentResultIndex]?.detectedAreas || 0
+                              }
+                            </div>
+                            <div className={`${
+                              selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                                ? 'text-red-400' 
+                                : 'text-emerald-400'
+                            }`}>
+                              Confidence: {selectedReport.images[currentResultIndex]?.status === 'api_error' 
+                                ? 'N/A' 
+                                : `${(selectedReport.images[currentResultIndex]?.confidence * 100 || 0).toFixed(1)}%`
+                              }
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -454,6 +644,16 @@ const Reports = () => {
         onSubmit={auth.handleLoginSubmit}
         isLoading={auth.isLoading}
         error={auth.error}
+      />
+
+      <DownloadOptionsModal
+        isOpen={showDownloadModal}
+        onClose={closeDownloadModal}
+        onDownloadCurrent={downloadCurrentImage}
+        onDownloadAll={downloadAllImages}
+        currentImageName={`processed_${selectedReport?.images?.[currentResultIndex]?.input_name || 'image'}.jpg`}
+        totalImagesCount={selectedReport?.images?.length || 0}
+        isDownloading={isDownloading}
       />
     </div>
   );

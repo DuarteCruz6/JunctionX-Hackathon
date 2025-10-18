@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { uploadImages } from '../services/api.js';
+import { uploadImages, getPredictionResults } from '../services/api.js';
 
-export const useImageProcessing = () => {
+export const useImageProcessing = (onImagesUploaded) => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [processedResults, setProcessedResults] = useState([]);
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
@@ -191,6 +191,11 @@ export const useImageProcessing = () => {
           });
           
           console.log('Images uploaded successfully:', uploadResponse.results);
+          
+          // Notify parent component about uploaded images
+          if (onImagesUploaded && uploadResponse.results) {
+            onImagesUploaded(uploadResponse.results);
+          }
         } else {
           throw new Error('Upload failed: Invalid response from server');
         }
@@ -198,26 +203,86 @@ export const useImageProcessing = () => {
         setIsUploading(false);
       }
       
-      // Now simulate processing delay (2-4 seconds)
-      const processingTime = Math.random() * 2000 + 2000; // 2-4 seconds
-      await new Promise(resolve => setTimeout(resolve, processingTime));
+      // Wait for backend processing to complete and fetch real results
+      console.log('Waiting for backend processing to complete...');
       
-      // Create mock processing results from current selected images
-      const mockResults = selectedImages.map((image, index) => ({
-        id: index,
-        inputImage: image.preview,
-        inputName: image.name,
-        outputImage: image.preview, // In real implementation, this would be the processed result
-        outputName: `processed_${image.name}`,
-        originalFile: image.file, // Keep reference to original file for download
-        confidence: Math.random() * 0.3 + 0.7, // Random confidence between 0.7-1.0
-        detectedAreas: Math.floor(Math.random() * 5) + 1, // Random detected areas 1-5
-        processingTime: Math.floor(Math.random() * 3) + 1 // Random processing time 1-3 seconds
-      }));
+      // Poll for results every 2 seconds until processing is complete
+      const uploadedImages = selectedImages.filter(img => img.uploaded);
+      const realResults = [];
       
-      // Add new results to existing processedResults (for multiple batches)
-      setProcessedResults(prev => [...prev, ...mockResults]);
-      setCurrentResultIndex(prev => prev === 0 && mockResults.length > 0 ? 0 : prev);
+      for (const image of uploadedImages) {
+        if (image.imageId) {
+          let attempts = 0;
+          const maxAttempts = 30; // 60 seconds max wait time
+          
+          while (attempts < maxAttempts) {
+            try {
+              const results = await getPredictionResults(image.imageId);
+              
+              if (results.success && results.status === 'processed') {
+                // Create real result from backend data
+                const realResult = {
+                  id: realResults.length,
+                  inputImage: image.preview,
+                  inputName: image.name,
+                  outputImage: results.results_url || image.preview,
+                  outputName: `processed_${image.name}`,
+                  originalFile: image.file,
+                  confidence: results.results.average_confidence || 0,
+                  detectedAreas: results.results.num_detections || 0,
+                  processingTime: results.results.processing_time || 0,
+                  species: extractSpeciesFromDetections(results.results.detections || [])
+                };
+                
+                realResults.push(realResult);
+                console.log(`Real results fetched for ${image.name}:`, realResult);
+                break;
+              } else if (results.status === 'failed') {
+                console.error(`Processing failed for ${image.name}`);
+                break;
+              }
+              
+              // Still processing, wait and try again
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              attempts++;
+            } catch (error) {
+              console.error(`Error fetching results for ${image.name}:`, error);
+              break;
+            }
+          }
+          
+          if (attempts >= maxAttempts) {
+            console.warn(`Timeout waiting for results for ${image.name}`);
+          }
+        }
+      }
+      
+      // Add real results to existing processedResults
+      if (realResults.length > 0) {
+        setProcessedResults(prev => [...prev, ...realResults]);
+        setCurrentResultIndex(prev => prev === 0 && realResults.length > 0 ? 0 : prev);
+        console.log('Real results added:', realResults);
+      } else {
+        console.warn('No real results obtained, API may not be configured');
+        // Create results with error state instead of mock data
+        const errorResults = selectedImages.map((image, index) => ({
+          id: index,
+          inputImage: image.preview,
+          inputName: image.name,
+          outputImage: image.preview, // Use original image as fallback
+          outputName: `processed_${image.name}`,
+          originalFile: image.file,
+          confidence: 0, // Show 0 instead of fake data
+          detectedAreas: 0, // Show 0 instead of fake data
+          processingTime: 0, // Show 0 instead of fake data
+          species: [], // Empty species array
+          status: 'api_error', // Add error status
+          error: 'API not configured or processing failed'
+        }));
+        
+        setProcessedResults(prev => [...prev, ...errorResults]);
+        setCurrentResultIndex(prev => prev === 0 && errorResults.length > 0 ? 0 : prev);
+      }
       
       // Clear selectedImages after processing (images now only appear in results)
       setSelectedImages([]);
@@ -499,3 +564,22 @@ export const useImageProcessing = () => {
     uploadError
   };
 };
+
+// Helper function to extract species from detections
+function extractSpeciesFromDetections(detections) {
+  const species = new Set();
+  for (const detection of detections) {
+    const label = detection.label?.toLowerCase() || '';
+    if (label.includes('acacia')) {
+      const speciesName = label.replace('acacia', '').trim();
+      if (speciesName) {
+        species.add(`Acacia ${speciesName}`);
+      } else {
+        species.add('Acacia');
+      }
+    } else if (label) {
+      species.add(label.charAt(0).toUpperCase() + label.slice(1));
+    }
+  }
+  return Array.from(species);
+}

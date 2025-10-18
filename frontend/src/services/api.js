@@ -54,4 +54,70 @@ export async function uploadImages(files) {
   }
 }
 
+export async function getUserReports() {
+  try {
+    const resp = await api.get('/api/v1/reports');
+    return resp.data;
+  } catch (error) {
+    if (error.response) {
+      const errorData = error.response.data;
+      throw new Error(`Failed to fetch reports: ${errorData.detail || error.response.statusText}`);
+    } else if (error.request) {
+      throw new Error('Network error: Unable to connect to server');
+    } else {
+      throw new Error(`Failed to fetch reports: ${error.message}`);
+    }
+  }
+}
+
+export async function getPredictionResults(imageId) {
+  try {
+    const resp = await api.get(`/api/v1/predict/${imageId}/results`);
+    return resp.data;
+  } catch (error) {
+    if (error.response) {
+      const errorData = error.response.data;
+      throw new Error(`Failed to fetch results: ${errorData.detail || error.response.statusText}`);
+    } else if (error.request) {
+      throw new Error('Network error: Unable to connect to server');
+    } else {
+      throw new Error(`Failed to fetch results: ${error.message}`);
+    }
+  }
+}
+
+export async function runPrediction(imageId) {
+  try {
+    const resp = await api.post(`/api/v1/predict/${imageId}`);
+    return resp.data;
+  } catch (error) {
+    if (error.response) {
+      const errorData = error.response.data;
+      throw new Error(`Prediction failed: ${errorData.detail || error.response.statusText}`);
+    } else if (error.request) {
+      throw new Error('Network error: Unable to connect to server');
+    } else {
+      throw new Error(`Prediction failed: ${error.message}`);
+    }
+  }
+}
+
+export async function downloadImage(imageId) {
+  try {
+    const resp = await api.get(`/api/v1/download/${imageId}`, {
+      responseType: 'blob' // Important: tells axios to handle binary data
+    });
+    return resp.data; // Returns the blob
+  } catch (error) {
+    if (error.response) {
+      const errorData = error.response.data;
+      throw new Error(`Download failed: ${errorData.detail || error.response.statusText}`);
+    } else if (error.request) {
+      throw new Error('Network error: Unable to connect to server');
+    } else {
+      throw new Error(`Download failed: ${error.message}`);
+    }
+  }
+}
+
 export default api;
