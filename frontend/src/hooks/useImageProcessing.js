@@ -422,12 +422,8 @@ export const useImageProcessing = () => {
       console.log('ZIP download completed successfully');
       setShowDownloadModal(false);
       
-      // Show success message
-      alert(`Successfully downloaded ZIP file with ${fileCount} images!`);
-      
     } catch (error) {
       console.error('Error creating ZIP file:', error);
-      alert(`Error creating ZIP file: ${error.message}`);
       setUploadError(`Failed to create ZIP file: ${error.message}`);
     } finally {
       setIsDownloading(false);

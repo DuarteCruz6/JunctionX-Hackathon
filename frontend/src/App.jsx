@@ -9,6 +9,7 @@ import Features from './components/sections/Features';
 import Footer from './components/sections/Footer';
 import LoginModal from './components/modals/LoginModal';
 import ReportsModal from './components/modals/ReportsModal';
+import ScrollToTop from './components/ScrollToTop';
 import AcaciaSearch from './pages/AcaciaSearch';
 
 // Hooks
@@ -105,6 +106,7 @@ const Home = () => {
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/public-demo" element={<AcaciaSearch />} />
