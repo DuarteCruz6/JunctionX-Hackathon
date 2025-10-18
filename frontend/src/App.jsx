@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './index.css';
 import { uploadImages } from './services/api';
+import { auth } from './firebase';
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -18,6 +20,22 @@ function App() {
     confirmPassword: ''
   });
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [lastAuthEvent, setLastAuthEvent] = useState(null);
+  const [lastAuthError, setLastAuthError] = useState(null);
+
+  useEffect(() => {
+    console.debug('Setting up onAuthStateChanged listener');
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.debug('onAuthStateChanged user:', user);
+      setIsLoggedIn(!!user);
+      setLastAuthEvent({ type: 'stateChanged', user });
+      setLastAuthError(null);
+    }, (err) => {
+      console.error('onAuthStateChanged error', err);
+      setLastAuthError(err);
+    });
+    return () => unsubscribe();
+  }, []);
   const [showReportsModal, setShowReportsModal] = useState(false);
 
   const handleFileChange = (event) => {
@@ -141,26 +159,37 @@ function App() {
     event.preventDefault();
     try {
       const { email, password } = loginForm;
-      // Use Firebase Auth for login/signup
-      const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import('firebase/auth');
-      const auth = getAuth();
-
+      // Use initialized Firebase Auth instance for login/signup
+  console.debug('Attempting auth', { isLoginMode, email });
+  setLastAuthEvent({ type: 'attempt', email, mode: isLoginMode ? 'signin' : 'signup' });
+  setLastAuthError(null);
+      let result;
       if (isLoginMode) {
-        await signInWithEmailAndPassword(auth, email, password);
+        result = await signInWithEmailAndPassword(auth, email, password);
       } else {
         if (password !== loginForm.confirmPassword) {
           alert('Passwords do not match');
           return;
         }
-        await createUserWithEmailAndPassword(auth, email, password);
+        result = await createUserWithEmailAndPassword(auth, email, password);
       }
 
-      setIsLoggedIn(true);
-      setShowLoginModal(false);
-      setLoginForm({ email: '', password: '', confirmPassword: '' });
+  console.debug('Auth result', result);
+  setLastAuthEvent({ type: 'result', result });
+      // Only mark logged in if Firebase returned a user object
+      if (result && result.user) {
+        setIsLoggedIn(true);
+        setShowLoginModal(false);
+        setLoginForm({ email: '', password: '', confirmPassword: '' });
+      } else {
+        console.warn('Auth did not return a user object', result);
+        alert('Authentication did not return a valid user. Check console for details.');
+      }
     } catch (err) {
       console.error('Auth error', err);
-      alert('Authentication failed: ' + (err?.message || err));
+      setLastAuthError(err);
+      const msg = err?.message || err?.code || String(err);
+      alert('Authentication failed: ' + msg);
     }
   };
 
@@ -210,6 +239,15 @@ function App() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-slate-900">
+      {/* Debug panel (visible during development) */}
+      <div style={{position: 'fixed', right: 12, top: 12, zIndex: 9999}}>
+        <div className="bg-black/70 text-white p-3 rounded-lg text-sm max-w-xs">
+          <div className="font-semibold mb-1">Auth Debug</div>
+          <div>isLoggedIn: {String(isLoggedIn)}</div>
+          <div>lastEvent: {lastAuthEvent ? JSON.stringify(lastAuthEvent) : 'none'}</div>
+          <div>lastError: {lastAuthError ? (lastAuthError.message || JSON.stringify(lastAuthError)) : 'none'}</div>
+        </div>
+      </div>
       {/* Content */}
       <div className="relative z-10">
         {/* Navigation */}
