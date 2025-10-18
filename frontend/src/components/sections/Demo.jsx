@@ -149,9 +149,9 @@ const Demo = ({
                   </div>
                   <h3 className="text-2xl font-semibold text-white mb-4">Upload Forest Images</h3>
                   <div className="text-sm text-slate-400 mb-8">
-                    <p className="mb-2">✅ <strong>Supported formats:</strong> JPG, PNG, TIFF</p>
-                    <p className="mb-2">📏 <strong>File size limit:</strong> 50MB per file</p>
-                    <p className="text-slate-500 text-xs">💡 Tip: Select multiple files at once for batch processing</p>
+                    <p className="mb-2"><strong>Supported formats:</strong> JPG, PNG, TIFF</p>
+                    <p className="mb-2"><strong>File size limit:</strong> 50MB per file</p>
+                    <p className="text-slate-500 text-xs">Tip: Select multiple files at once for batch processing</p>
                   </div>
                   <input
                     type="file"
