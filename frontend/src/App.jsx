@@ -12,7 +12,7 @@ import LoginModal from './components/modals/LoginModal';
 import ReportsModal from './components/modals/ReportsModal';
 import ImageModal from './components/modals/ImageModal';
 import LoadingSpinner from './components/ui/LoadingSpinner';
-import PublicDemo from './pages/PublicDemo';
+import AcaciaSearch from './pages/AcaciaSearch';
 
 // Hooks
 import { useAuth } from './hooks/useAuth';
@@ -110,7 +110,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/public-demo" element={<PublicDemo />} />
+        <Route path="/public-demo" element={<AcaciaSearch />} />
       </Routes>
     </Router>
   );

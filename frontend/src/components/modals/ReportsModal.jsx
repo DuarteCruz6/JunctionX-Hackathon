@@ -36,7 +36,7 @@ const ReportsModal = ({ isOpen, onClose, onLoginClick, onCreateAccount }) => {
               onClick={onLoginClick}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
             >
-              Sign In to Access Reports
+              Sign In to access Reports
             </button>
             
             <button

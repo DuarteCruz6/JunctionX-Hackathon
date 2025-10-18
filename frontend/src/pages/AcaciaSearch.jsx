@@ -15,7 +15,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useImageProcessing } from '../hooks/useImageProcessing';
 import { useReports } from '../hooks/useReports';
 
-const PublicDemo = () => {
+const AcaciaSearch = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
@@ -51,6 +51,16 @@ const PublicDemo = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-slate-900 pt-16">
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="/acacia.jpg" 
+          alt="Acacia forest background" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-slate-900/60"></div>
+      </div>
+      
       {/* Content */}
       <div className="relative z-10">
         {/* Navigation */}
@@ -64,7 +74,16 @@ const PublicDemo = () => {
         />
 
         {/* Hero Section for Demo Page */}
-        <section className="relative overflow-hidden py-8 bg-slate-900/60 backdrop-blur-sm">
+        <section className="relative overflow-hidden py-8">
+          {/* Background Image for Title Section */}
+          <div className="absolute inset-0 z-0">
+            <img 
+              src="/acacias.jpg" 
+              alt="Acacias background" 
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+          </div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
             <div className="text-center">
               <button
@@ -158,4 +177,4 @@ const PublicDemo = () => {
   );
 };
 
-export default PublicDemo;
+export default AcaciaSearch;
