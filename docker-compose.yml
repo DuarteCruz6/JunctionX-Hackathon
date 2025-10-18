@@ -24,6 +24,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-dummy_secret}
       - AWS_S3_BUCKET=${AWS_S3_BUCKET:-dummy_bucket}
       - FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS:-dummy_creds}
+      
     depends_on:
       - redis
 
@@ -44,5 +45,17 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-dummy_secret}
       - AWS_S3_BUCKET=${AWS_S3_BUCKET:-dummy_bucket}
       - FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS:-dummy_creds}
+      
     depends_on:
       - redis
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    # Serve the production build via nginx on container port 80 -> host 3000
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './index.css';
+import { uploadImages } from './services/api';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -53,20 +54,31 @@ function App() {
   };
 
   const handleProcessImages = () => {
-    // Simulate processing results with mock data
-    const mockResults = selectedImages.map((image, index) => ({
-      id: index,
-      inputImage: image.preview,
-      inputName: image.name,
-      outputImage: image.preview, // In real implementation, this would be the processed result
-      outputName: `processed_${image.name}`,
-      confidence: Math.random() * 0.3 + 0.7, // Random confidence between 0.7-1.0
-      detectedAreas: Math.floor(Math.random() * 5) + 1, // Random detected areas 1-5
-      processingTime: Math.floor(Math.random() * 3) + 1 // Random processing time 1-3 seconds
-    }));
-    
-    setProcessedResults(mockResults);
-    setCurrentResultIndex(0);
+    // Upload files to backend for processing
+    const files = selectedImages.map(img => img.file);
+    if (files.length === 0) return;
+
+    uploadImages(files)
+      .then(data => {
+        // Backend returns an array of uploaded image metadata with s3_url and image_id
+        const results = (data.results || []).map((item, index) => ({
+          id: item.image_id || index,
+          inputImage: selectedImages[index]?.preview,
+          inputName: item.filename || selectedImages[index]?.name || `image_${index}`,
+          outputImage: selectedImages[index]?.preview,
+          outputName: item.filename ? `processed_${item.filename}` : `processed_image_${index}`,
+          confidence: Math.random() * 0.3 + 0.7,
+          detectedAreas: Math.floor(Math.random() * 5) + 1,
+          processingTime: Math.floor(Math.random() * 3) + 1
+        }));
+
+        setProcessedResults(results);
+        setCurrentResultIndex(0);
+      })
+      .catch(err => {
+        console.error('Upload failed', err);
+        alert('Upload failed: ' + (err?.response?.data?.detail || err.message));
+      });
   };
 
   const navigateResult = (direction) => {
@@ -125,26 +137,30 @@ function App() {
     }));
   };
 
-  const handleLoginSubmit = (event) => {
+  const handleLoginSubmit = async (event) => {
     event.preventDefault();
-    if (isLoginMode) {
-      // Handle login logic here
-      console.log('Login attempt:', { email: loginForm.email, password: loginForm.password });
-      // For now, just close the modal and set user as logged in
-      setIsLoggedIn(true);
-      setShowLoginModal(false);
-      setLoginForm({ email: '', password: '', confirmPassword: '' });
-    } else {
-      // Handle signup logic here
-      if (loginForm.password !== loginForm.confirmPassword) {
-        alert('Passwords do not match');
-        return;
+    try {
+      const { email, password } = loginForm;
+      // Use Firebase Auth for login/signup
+      const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import('firebase/auth');
+      const auth = getAuth();
+
+      if (isLoginMode) {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        if (password !== loginForm.confirmPassword) {
+          alert('Passwords do not match');
+          return;
+        }
+        await createUserWithEmailAndPassword(auth, email, password);
       }
-      console.log('Signup attempt:', loginForm);
-      // For now, just close the modal and set user as logged in
+
       setIsLoggedIn(true);
       setShowLoginModal(false);
       setLoginForm({ email: '', password: '', confirmPassword: '' });
+    } catch (err) {
+      console.error('Auth error', err);
+      alert('Authentication failed: ' + (err?.message || err));
     }
   };
 
