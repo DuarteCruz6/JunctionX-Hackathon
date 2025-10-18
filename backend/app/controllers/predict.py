@@ -4,7 +4,13 @@ from app.utils.ml_inference import run_acacia_detection
 from app.utils.firebase_db import get_image_metadata, update_prediction_results
 from app.utils.s3_storage import upload_prediction_results
 import asyncio
+import time
+import logging
 from typing import Optional
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -23,11 +29,15 @@ async def predict_acacia(
     Returns:
         JSON response with prediction results
     """
+    start_time = time.time()
+    logger.info(f"Starting prediction for image_id: {image_id} (user: {user_id})")
     
     try:
         # Get image metadata
+        logger.debug(f"Fetching metadata for image: {image_id}")
         metadata = await get_image_metadata(image_id, user_id)
         if not metadata:
+            logger.warning(f"Image not found: {image_id}")
             raise HTTPException(
                 status_code=404,
                 detail="Image not found"
@@ -35,6 +45,7 @@ async def predict_acacia(
         
         # Check if image is already processed
         if metadata.get("status") == "processed":
+            logger.info(f"Image {image_id} already processed, returning cached results")
             return {
                 "success": True,
                 "image_id": image_id,
@@ -43,26 +54,32 @@ async def predict_acacia(
             }
         
         # Update status to processing
+        logger.debug(f"Updating status to 'processing' for image: {image_id}")
         await update_prediction_results(image_id, {"status": "processing"})
         
         # Run ML inference
         s3_url = metadata.get("s3_url")
         if not s3_url:
+            logger.error(f"S3 URL not found for image: {image_id}")
             raise HTTPException(
                 status_code=400,
                 detail="Image S3 URL not found"
             )
         
         # Run Acacia detection
+        logger.info(f"Starting ML inference for image: {image_id}")
         prediction_results = await run_acacia_detection(s3_url)
+        logger.debug(f"ML inference completed for image: {image_id}")
         
         # Upload results to S3
+        logger.debug(f"Uploading prediction results to S3 for image: {image_id}")
         results_s3_url = await upload_prediction_results(
             image_id, 
             prediction_results
         )
         
         # Update metadata with results
+        logger.debug(f"Updating metadata with results for image: {image_id}")
         results_data = {
             "status": "processed",
             "prediction_results": prediction_results,
@@ -71,6 +88,13 @@ async def predict_acacia(
         }
         
         await update_prediction_results(image_id, results_data)
+        
+        process_time = time.time() - start_time
+        logger.info(
+            f"Prediction completed for image: {image_id} "
+            f"Duration: {process_time:.2f}s "
+            f"Detections: {len(prediction_results.get('detections', []))}"
+        )
         
         return {
             "success": True,
@@ -81,13 +105,24 @@ async def predict_acacia(
         }
         
     except HTTPException:
+        process_time = time.time() - start_time
+        logger.warning(
+            f"HTTP exception in prediction for image: {image_id} "
+            f"Duration: {process_time:.2f}s"
+        )
         raise
     except Exception as e:
+        process_time = time.time() - start_time
+        logger.error(
+            f"Prediction failed for image: {image_id} "
+            f"Error: {str(e)} "
+            f"Duration: {process_time:.2f}s"
+        )
         # Update status to failed
         try:
             await update_prediction_results(image_id, {"status": "failed"})
-        except:
-            pass
+        except Exception as update_error:
+            logger.error(f"Failed to update status for failed prediction: {update_error}")
         
         raise HTTPException(
             status_code=500,

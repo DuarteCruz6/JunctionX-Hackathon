@@ -4,6 +4,11 @@ from botocore.exceptions import ClientError
 from typing import Optional
 import uuid
 from datetime import datetime
+import logging
+import time
+
+# Get module logger
+logger = logging.getLogger(__name__)
 
 class S3Storage:
     """AWS S3 storage utility for image and result storage."""
@@ -32,7 +37,17 @@ class S3Storage:
         Returns:
             str: S3 URL of the uploaded file
         """
+        start_time = time.time()
+        file_size = len(file_content)
+        
         try:
+            logger.info(
+                f"Starting S3 upload - Key: {key} "
+                f"Size: {file_size/1024:.1f}KB "
+                f"Type: {content_type}"
+            )
+            
+            upload_start = time.time()
             self.s3_client.put_object(
                 Bucket=self.bucket_name,
                 Key=key,
@@ -40,17 +55,35 @@ class S3Storage:
                 ContentType=content_type,
                 ACL='private'  # Private by default for security
             )
+            upload_time = time.time() - upload_start
             
             # Generate presigned URL for access (valid for 1 hour)
+            url_start = time.time()
             url = self.s3_client.generate_presigned_url(
                 'get_object',
                 Params={'Bucket': self.bucket_name, 'Key': key},
                 ExpiresIn=3600
             )
+            url_time = time.time() - url_start
             
+            total_time = time.time() - start_time
+            upload_speed = file_size / (upload_time * 1024 * 1024)  # MB/s
+            
+            logger.info(
+                f"S3 upload successful - Key: {key} "
+                f"Size: {file_size/1024:.1f}KB "
+                f"Duration: {total_time:.2f}s "
+                f"Speed: {upload_speed:.2f}MB/s"
+            )
+            logger.debug(
+                f"S3 operation breakdown - "
+                f"Upload: {upload_time:.2f}s "
+                f"URL Generation: {url_time:.2f}s"
+            )
             return url
             
         except ClientError as e:
+            logger.error(f"S3 upload failed for {key}: {str(e)}")
             raise Exception(f"S3 upload failed: {str(e)}")
     
     async def download_file(self, key: str) -> bytes:
@@ -63,11 +96,32 @@ class S3Storage:
         Returns:
             bytes: File content
         """
+        start_time = time.time()
+        
         try:
+            logger.info(f"Starting S3 download - Key: {key}")
             response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
-            return response['Body'].read()
+            content = response['Body'].read()
+            
+            download_time = time.time() - start_time
+            file_size = len(content)
+            download_speed = file_size / (download_time * 1024 * 1024)  # MB/s
+            
+            logger.info(
+                f"S3 download successful - Key: {key} "
+                f"Size: {file_size/1024:.1f}KB "
+                f"Duration: {download_time:.2f}s "
+                f"Speed: {download_speed:.2f}MB/s"
+            )
+            return content
             
         except ClientError as e:
+            download_time = time.time() - start_time
+            logger.error(
+                f"S3 download failed - Key: {key} "
+                f"Duration: {download_time:.2f}s "
+                f"Error: {str(e)}"
+            )
             raise Exception(f"S3 download failed: {str(e)}")
     
     async def delete_file(self, key: str) -> bool:
@@ -80,11 +134,26 @@ class S3Storage:
         Returns:
             bool: True if successful
         """
+        start_time = time.time()
+        
         try:
+            logger.info(f"Starting S3 delete operation - Key: {key}")
             self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
+            
+            delete_time = time.time() - start_time
+            logger.info(
+                f"S3 delete successful - Key: {key} "
+                f"Duration: {delete_time:.2f}s"
+            )
             return True
             
         except ClientError as e:
+            delete_time = time.time() - start_time
+            logger.error(
+                f"S3 delete failed - Key: {key} "
+                f"Duration: {delete_time:.2f}s "
+                f"Error: {str(e)}"
+            )
             raise Exception(f"S3 delete failed: {str(e)}")
     
     def generate_key(self, prefix: str, filename: str) -> str:

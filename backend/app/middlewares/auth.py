@@ -3,6 +3,15 @@ from firebase_admin import credentials, auth
 from fastapi import HTTPException, Depends, Header
 from typing import Optional
 import os
+import logging
+
+# Setup basic logging for auth
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(name)s %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 
 # Initialize Firebase Admin SDK
 def initialize_firebase():
@@ -42,6 +51,7 @@ def verify_firebase_token(authorization: Optional[str] = Header(None)) -> str:
     """
     
     if not authorization:
+        logger.warning("Authorization header missing")
         raise HTTPException(
             status_code=401,
             detail="Authorization header missing"
@@ -50,6 +60,7 @@ def verify_firebase_token(authorization: Optional[str] = Header(None)) -> str:
     try:
         # Extract token from "Bearer <token>" format
         if not authorization.startswith("Bearer "):
+            logger.warning("Invalid authorization format")
             raise HTTPException(
                 status_code=401,
                 detail="Invalid authorization format. Use 'Bearer <token>'"
@@ -62,24 +73,29 @@ def verify_firebase_token(authorization: Optional[str] = Header(None)) -> str:
         user_id = decoded_token.get('uid')
         
         if not user_id:
+            logger.warning("Invalid token: user ID not found")
             raise HTTPException(
                 status_code=401,
                 detail="Invalid token: user ID not found"
             )
-        
+            
+        logger.info(f"User authenticated: {user_id}")
         return user_id
         
     except auth.InvalidIdTokenError:
+        logger.warning("Invalid Firebase token")
         raise HTTPException(
             status_code=401,
             detail="Invalid Firebase token"
         )
     except auth.ExpiredIdTokenError:
+        logger.warning("Firebase token expired")
         raise HTTPException(
             status_code=401,
             detail="Firebase token expired"
         )
     except Exception as e:
+        logger.error(f"Token verification failed: {e}")
         raise HTTPException(
             status_code=401,
             detail=f"Token verification failed: {str(e)}"
@@ -97,6 +113,7 @@ def get_firebase_user_info(user_id: str) -> dict:
     """
     try:
         user = auth.get_user(user_id)
+        logger.info(f"Fetched user info for: {user_id}")
         return {
             "uid": user.uid,
             "email": user.email,
@@ -105,6 +122,7 @@ def get_firebase_user_info(user_id: str) -> dict:
             "disabled": user.disabled
         }
     except Exception as e:
+        logger.error(f"User not found: {user_id} ({e})")
         raise HTTPException(
             status_code=404,
             detail=f"User not found: {str(e)}"
