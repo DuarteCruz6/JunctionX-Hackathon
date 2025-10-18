@@ -308,7 +308,7 @@ const Reports = () => {
   return (
     <div className="min-h-screen bg-slate-900 pt-16">
       {/* Background Image */}
-      <div className="absolute inset-0 z-0">
+      <div className="fixed inset-0 z-0">
         <img 
           src="/acacia.jpg" 
           alt="Acacia forest background" 
@@ -318,7 +318,7 @@ const Reports = () => {
       </div>
       
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 min-h-screen flex flex-col">
         {/* Navigation */}
         <Header
           isLoggedIn={auth.isLoggedIn}
@@ -330,7 +330,7 @@ const Reports = () => {
         />
 
         {/* Main Content */}
-        <div className="flex h-screen">
+        <div className="flex-1 flex h-screen">
           {/* Sidebar - Search History */}
           <div className={`bg-slate-800/90 backdrop-blur-md border-r border-slate-700/50 transition-all duration-300 ${
             isSidebarCollapsed ? 'w-16' : 'w-80'
