@@ -53,33 +53,31 @@ const PhotoNavigation = ({
 
   return (
     <div className="flex items-center justify-center space-x-2">
-      {/* Left Arrow - navigate within current page or to previous page */}
-      <button
-        onClick={() => {
-          if (currentResultIndex > 0) {
-            if (totalResults > 7) {
-              // Navigate to the first image of the previous page
+      {/* Left Arrow - navigate 7 images at a time, only show if more than 7 images */}
+      {totalResults > 7 && (
+        <button
+          onClick={() => {
+            if (currentResultIndex > 0) {
+              // Always navigate to the first image of the previous page (7 images back)
               const currentPage = Math.floor(currentResultIndex / 7);
               const previousPage = Math.max(0, currentPage - 1);
               const firstIndexOfPreviousPage = previousPage * 7;
               onNavigateToIndex(firstIndexOfPreviousPage);
-            } else {
-              onNavigateResult('prev');
             }
-          }
-        }}
-        disabled={currentResultIndex <= 0}
-        className={`p-2 rounded-lg transition-colors ${
-          currentResultIndex > 0 
-            ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' 
-            : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-        }`}
-        title={totalResults > 7 ? "Previous page (7 images)" : "Previous image"}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
+          }}
+          disabled={currentResultIndex <= 0}
+          className={`p-2 rounded-lg transition-colors ${
+            currentResultIndex > 0 
+              ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' 
+              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+          }`}
+          title="Previous page (7 images)"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      )}
 
       {/* 7 Navigation Squares */}
       <div className={`flex items-center ${totalResults <= 3 ? 'space-x-2' : 'space-x-1.5'}`}>
@@ -115,35 +113,33 @@ const PhotoNavigation = ({
         ))}
       </div>
 
-      {/* Right Arrow - navigate within current page or to next page */}
-      <button
-        onClick={() => {
-          if (currentResultIndex < totalResults - 1) {
-            if (totalResults > 7) {
-              // Navigate to the first image of the next page
+      {/* Right Arrow - navigate 7 images at a time, only show if more than 7 images */}
+      {totalResults > 7 && (
+        <button
+          onClick={() => {
+            if (currentResultIndex < totalResults - 1) {
+              // Always navigate to the first image of the next page (7 images forward)
               const currentPage = Math.floor(currentResultIndex / 7);
               const nextPage = currentPage + 1;
               const firstIndexOfNextPage = nextPage * 7;
               // Make sure we don't go beyond the total results
               const targetIndex = Math.min(totalResults - 1, firstIndexOfNextPage);
               onNavigateToIndex(targetIndex);
-            } else {
-              onNavigateResult('next');
             }
-          }
-        }}
-        disabled={currentResultIndex >= totalResults - 1}
-        className={`p-2 rounded-lg transition-colors ${
-          currentResultIndex < totalResults - 1 
-            ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' 
-            : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-        }`}
-        title={totalResults > 7 ? "Next page (7 images)" : "Next image"}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
+          }}
+          disabled={currentResultIndex >= totalResults - 1}
+          className={`p-2 rounded-lg transition-colors ${
+            currentResultIndex < totalResults - 1 
+              ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' 
+              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+          }`}
+          title="Next page (7 images)"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
 
       {/* Current Index Display */}
       <div className="ml-4 px-3 py-2 bg-slate-700 rounded-lg">

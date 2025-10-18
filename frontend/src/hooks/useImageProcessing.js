@@ -13,6 +13,7 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
   const [uploadError, setUploadError] = useState(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [currentSubmissionId, setCurrentSubmissionId] = useState(null);
 
   const handleFileChange = async (event) => {
     const files = Array.from(event.target.files);
@@ -187,9 +188,25 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
       console.log(`Uploading ${imagesToUpload.length} images...`);
       
       const filesToUpload = imagesToUpload.map(img => img.file);
-      const uploadResponse = await uploadImages(filesToUpload);
+      
+      // Check if we should reuse existing submission or create new one
+      const shouldReuseSubmission = currentSubmissionId !== null;
+      console.log(`Should reuse submission: ${shouldReuseSubmission}, currentSubmissionId: ${currentSubmissionId}`);
+      
+      const uploadResponse = await uploadImages(filesToUpload, shouldReuseSubmission ? currentSubmissionId : null);
       
       if (uploadResponse.success && uploadResponse.results) {
+        // Store the submission ID if this is a new submission
+        console.log('Upload response:', uploadResponse);
+        console.log('Current submission ID before update:', currentSubmissionId);
+        
+        if (uploadResponse.submission_id && !currentSubmissionId) {
+          setCurrentSubmissionId(uploadResponse.submission_id);
+          console.log('New submission created:', uploadResponse.submission_id);
+        } else if (uploadResponse.submission_id && currentSubmissionId) {
+          console.log('Using existing submission:', uploadResponse.submission_id);
+        }
+        
         // Update the selected images with upload results
         setSelectedImages(prev => {
           const updatedImages = [...prev];
@@ -205,6 +222,13 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
                 s3Url: uploadResult?.s3_url,
                 uploadDate: uploadResult?.date
               };
+              
+              // Also store submission ID from individual result if not already set
+              if (uploadResult?.submission_id && !currentSubmissionId) {
+                setCurrentSubmissionId(uploadResult.submission_id);
+                console.log('Submission ID from individual result:', uploadResult.submission_id);
+              }
+              
               uploadIndex++;
             }
           });
@@ -377,6 +401,7 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
     setProcessedResults([]);
     setCurrentResultIndex(0);
     setUploadError(null);
+    setCurrentSubmissionId(null);
   };
 
   const navigateResult = (direction) => {

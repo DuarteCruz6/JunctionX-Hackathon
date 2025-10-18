@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from app.middlewares.auth import verify_firebase_token
 from app.utils.s3_storage import upload_to_s3
 from app.utils.firebase_db import save_image_metadata, create_submission, update_submission
@@ -31,6 +31,7 @@ router = APIRouter()
 @router.post("/upload")
 async def upload_images(
     files: List[UploadFile] = File(...),
+    submission_id: Optional[str] = Form(None),
     user_id: str = Depends(verify_firebase_token)
 ):
     """
@@ -48,30 +49,53 @@ async def upload_images(
     max_size = 50 * 1024 * 1024  # 50MB
     error_files, results = [], []
     
-    # Create submission record first
-    submission_id = None
-    if files:
+    logger.info(f"Upload request - Files: {len(files)}, Submission ID: {submission_id}, User: {user_id}")
+    
+    # Handle submission - either create new or use existing
+    if submission_id:
+        # Verify the existing submission belongs to the user
         try:
-            submission_data = {
-                "user_id": user_id,
-                "status": "processing",
-                "image_count": len(files),
-                "total_detected_areas": 0,
-                "average_confidence": 0.0,
-                "image_ids": [],
-                "metadata": {
-                    "upload_session": datetime.now().isoformat(),
-                    "total_files": len(files)
-                }
-            }
-            submission_id = await create_submission(submission_data)
-            logger.info(f"Created submission: {submission_id} for {len(files)} files")
+            from app.utils.firebase_db import get_submission_with_images
+            existing_submission = await get_submission_with_images(submission_id, user_id)
+            if not existing_submission:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Submission not found or access denied"
+                )
+            logger.info(f"Using existing submission: {submission_id} for {len(files)} additional files")
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"Failed to create submission: {e}")
+            logger.error(f"Failed to verify existing submission: {e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to create submission: {str(e)}"
+                detail=f"Failed to verify existing submission: {str(e)}"
             )
+    else:
+        # Create new submission record
+        submission_id = None
+        if files:
+            try:
+                submission_data = {
+                    "user_id": user_id,
+                    "status": "processing",
+                    "image_count": len(files),
+                    "total_detected_areas": 0,
+                    "average_confidence": 0.0,
+                    "image_ids": [],
+                    "metadata": {
+                        "upload_session": datetime.now().isoformat(),
+                        "total_files": len(files)
+                    }
+                }
+                submission_id = await create_submission(submission_data)
+                logger.info(f"Created submission: {submission_id} for {len(files)} files")
+            except Exception as e:
+                logger.error(f"Failed to create submission: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to create submission: {str(e)}"
+                )
 
     for file in files:
         logger.info(f"Processing file: {file.filename} (type: {file.content_type})")
@@ -118,7 +142,8 @@ async def upload_images(
             # Add image to submission
             if submission_id:
                 await update_submission(submission_id, {
-                    "image_ids": firestore.ArrayUnion([image_id])
+                    "image_ids": firestore.ArrayUnion([image_id]),
+                    "image_count": firestore.Increment(1)
                 })
 
             # Auto-process the image after upload

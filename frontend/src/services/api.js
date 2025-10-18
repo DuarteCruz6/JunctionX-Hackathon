@@ -22,9 +22,17 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-export async function uploadImages(files) {
+export async function uploadImages(files, submissionId = null) {
   const formData = new FormData();
   files.forEach(file => formData.append('files', file));
+  
+  // Add submission ID if provided (for adding to existing submission)
+  if (submissionId) {
+    formData.append('submission_id', submissionId);
+    console.log('Adding submission_id to form data:', submissionId);
+  } else {
+    console.log('No submission_id provided, will create new submission');
+  }
 
   try {
     const resp = await api.post('/api/v1/upload', formData, {
@@ -32,6 +40,7 @@ export async function uploadImages(files) {
         'Content-Type': 'multipart/form-data'
       }
     });
+    console.log('Upload API response:', resp.data);
     return resp.data;
   } catch (error) {
     // Handle different types of errors
