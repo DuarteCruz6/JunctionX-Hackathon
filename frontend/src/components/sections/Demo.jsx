@@ -29,6 +29,7 @@ const Demo = ({
   isDownloading,
   onShowInputModal,
   onRemoveImage,
+  onNewSearch,
   isLoading,
   isUploading,
   uploadError
@@ -132,17 +133,27 @@ const Demo = ({
                     </div>
                   )}
                   <div className="text-center">
-                    <button 
-                      onClick={onProcessImages}
-                      disabled={isLoading || isUploading}
-                      className={`px-8 py-3 rounded-lg text-lg font-semibold transition-all transform ${
-                        isLoading || isUploading
-                          ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
-                          : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-105'
-                      }`}
-                    >
-                      {isUploading ? 'Uploading Images...' : isLoading ? 'Processing...' : 'Upload & Process Images'}
-                    </button>
+                    <div className="flex justify-center space-x-4">
+                      <button 
+                        onClick={onProcessImages}
+                        disabled={isLoading || isUploading}
+                        className={`px-8 py-3 rounded-lg text-lg font-semibold transition-all transform ${
+                          isLoading || isUploading
+                            ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-105'
+                        }`}
+                      >
+                        {isUploading ? 'Uploading Images...' : isLoading ? 'Processing...' : processedResults.length > 0 ? 'Add & Process Images' : 'Upload & Process Images'}
+                      </button>
+                      {processedResults.length > 0 && (
+                        <button 
+                          onClick={onNewSearch}
+                          className="px-8 py-3 rounded-lg text-lg font-semibold transition-all transform bg-blue-600 hover:bg-blue-700 text-white hover:scale-105"
+                        >
+                          Create New & Process Images
+                        </button>
+                      )}
+                    </div>
                     {selectedImages.length > 0 && (
                       <p className="text-sm text-slate-400 mt-2">
                         {selectedImages.filter(img => !img.uploaded).length} images ready to upload

@@ -146,6 +146,7 @@ const AcaciaSearch = () => {
           isDownloading={imageProcessing.isDownloading}
           onShowInputModal={() => imageProcessing.setShowInputModal(true)}
           onRemoveImage={imageProcessing.removeImage}
+          onNewSearch={imageProcessing.handleNewSearch}
           isLoading={imageProcessing.isLoading}
           isUploading={imageProcessing.isUploading}
           uploadError={imageProcessing.uploadError}
@@ -183,16 +184,10 @@ const AcaciaSearch = () => {
         imageName={imageProcessing.processedResults[imageProcessing.currentResultIndex]?.inputName}
       />
 
-      {/* Processing Loading Spinner */}
+      {/* Loading Spinner - Show only one at a time */}
       <LoadingSpinner 
-        isOpen={imageProcessing.isLoading}
-        message="Processing forest images with AI..."
-      />
-
-      {/* Upload Loading Spinner */}
-      <LoadingSpinner 
-        isOpen={imageProcessing.isUploading}
-        message="Uploading images..."
+        isOpen={imageProcessing.isLoading || imageProcessing.isUploading}
+        message="Loading and processing images..."
       />
     </div>
   );

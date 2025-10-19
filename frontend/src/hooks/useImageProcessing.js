@@ -178,6 +178,132 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
     }
   };
 
+  const handleAuthenticatedProcessingForNewSearch = async () => {
+    // First, upload all selected images that haven't been uploaded yet
+    const imagesToUpload = selectedImages.filter(img => !img.uploaded);
+    
+    if (imagesToUpload.length > 0) {
+      // Don't set isUploading state to avoid double loading screens
+      console.log(`Uploading ${imagesToUpload.length} images...`);
+      
+      const filesToUpload = imagesToUpload.map(img => img.file);
+      const uploadResponse = await uploadImages(filesToUpload);
+      
+      if (uploadResponse.success && uploadResponse.results) {
+        // Update the selected images with upload results
+        setSelectedImages(prev => {
+          const updatedImages = [...prev];
+          let uploadIndex = 0;
+          
+          updatedImages.forEach((img, index) => {
+            if (!img.uploaded) {
+              const uploadResult = uploadResponse.results[uploadIndex];
+              updatedImages[index] = {
+                ...img,
+                uploaded: true,
+                imageId: uploadResult?.image_id,
+                s3Url: uploadResult?.s3_url,
+                uploadDate: uploadResult?.date
+              };
+              uploadIndex++;
+            }
+          });
+          
+          return updatedImages;
+        });
+        
+        console.log('Images uploaded successfully:', uploadResponse.results);
+        
+        // Notify parent component about uploaded images
+        if (onImagesUploaded && uploadResponse.results) {
+          onImagesUploaded(uploadResponse.results);
+        }
+      } else {
+        throw new Error('Upload failed: Invalid response from server');
+      }
+    }
+    
+    // Wait for backend processing to complete and fetch real results
+    console.log('Waiting for backend processing to complete...');
+    
+    // Poll for results every 2 seconds until processing is complete
+    const uploadedImages = selectedImages.filter(img => img.uploaded);
+    const realResults = [];
+    
+    for (const image of uploadedImages) {
+      if (image.imageId) {
+        let attempts = 0;
+        const maxAttempts = 30; // 60 seconds max wait time
+        
+        while (attempts < maxAttempts) {
+          try {
+            const results = await getPredictionResults(image.imageId);
+            
+            if (results.success && (results.status === 'processed' || results.status === 'failed')) {
+              // Create real result from backend data
+              const realResult = {
+                id: realResults.length,
+                inputImage: image.preview,
+                inputName: image.name,
+                outputImage: results.results_url || image.preview,
+                outputName: `processed_${image.name}`,
+                originalFile: image.file,
+                confidence: results.results.average_confidence || 0,
+                detectedAreas: results.results.num_detections || 0,
+                processingTime: results.results.processing_time || 0,
+                species: extractSpeciesFromDetections(results.results.detections || []),
+                status: results.status, // Include the status (processed or failed)
+                error: results.results.error || null
+              };
+              
+              realResults.push(realResult);
+              console.log(`Real results fetched for ${image.name}:`, realResult);
+              break;
+            }
+            
+            // Still processing, wait and try again
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            attempts++;
+          } catch (error) {
+            console.error(`Error fetching results for ${image.name}:`, error);
+            break;
+          }
+        }
+        
+        if (attempts >= maxAttempts) {
+          console.warn(`Timeout waiting for results for ${image.name}`);
+        }
+      }
+    }
+    
+    // Add real results to existing processedResults
+    if (realResults.length > 0) {
+      setProcessedResults(prev => [...prev, ...realResults]);
+      setCurrentResultIndex(prev => prev === 0 && realResults.length > 0 ? 0 : prev);
+      console.log('Real results added:', realResults);
+    } else {
+      console.warn('No real results obtained, API may not be configured');
+      // Create results with error state instead of mock data
+      const errorResults = selectedImages.map((image, index) => ({
+        id: index,
+        inputImage: image.preview,
+        inputName: image.name,
+        outputImage: image.preview, // Use original image as fallback
+        outputName: `processed_${image.name}`,
+        originalFile: image.file,
+        confidence: 0, // Show 0 instead of fake data
+        detectedAreas: 0, // Show 0 instead of fake data
+        processingTime: 0, // Show 0 instead of fake data
+        species: [], // Empty species array
+        status: 'failed', // Use failed status to match backend
+        error: 'API not configured or processing failed'
+      }));
+      
+      setProcessedResults(prev => [...prev, ...errorResults]);
+      setCurrentResultIndex(prev => prev === 0 && errorResults.length > 0 ? 0 : prev);
+    }
+  };
+
   const handleAuthenticatedProcessing = async () => {
     // First, upload all selected images that haven't been uploaded yet
     const imagesToUpload = selectedImages.filter(img => !img.uploaded);
@@ -377,6 +503,42 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
     setProcessedResults([]);
     setCurrentResultIndex(0);
     setUploadError(null);
+  };
+
+  const handleNewSearch = async () => {
+    // Clear only the processed results (output box), keep selected images
+    setProcessedResults([]);
+    setCurrentResultIndex(0);
+    setUploadError(null);
+    
+    // If there are selected images, automatically process them
+    if (selectedImages.length > 0) {
+      // Set loading state and clear upload state to avoid double loading screens
+      setIsLoading(true);
+      setIsUploading(false);
+      
+      try {
+        if (isLoggedIn) {
+          // Authenticated flow - upload to server and save results (without setting upload state)
+          await handleAuthenticatedProcessingForNewSearch();
+        } else {
+          // Anonymous flow - analyze without saving
+          await handleAnonymousProcessing();
+        }
+        
+        // Clear selectedImages after processing (images now only appear in results)
+        setSelectedImages([]);
+        
+      } catch (error) {
+        console.error('Process error:', error);
+        setUploadError(`Processing failed: ${error.message}`);
+        // Ensure all loading states are reset on error
+        setIsUploading(false);
+      } finally {
+        setIsLoading(false);
+        setIsUploading(false); // Ensure upload state is also cleared
+      }
+    }
   };
 
   const navigateResult = (direction) => {
@@ -615,6 +777,7 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
     handleAddMoreFiles,
     handleProcessImages,
     handleClearAll,
+    handleNewSearch,
     navigateResult,
     navigateBySeven,
     navigateToIndex,
