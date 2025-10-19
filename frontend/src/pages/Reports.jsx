@@ -7,6 +7,7 @@ import Footer from '../components/sections/Footer';
 import LoginModal from '../components/modals/LoginModal';
 import DownloadOptionsModal from '../components/modals/DownloadOptionsModal';
 import ImageModal from '../components/modals/ImageModal';
+import AddPhotosModal from '../components/modals/AddPhotosModal';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import PhotoNavigation from '../components/ui/PhotoNavigation';
 
@@ -27,6 +28,10 @@ const Reports = () => {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showInputModal, setShowInputModal] = useState(false);
+  const [showAddPhotosModal, setShowAddPhotosModal] = useState(false);
+  const [selectedSubmissionForUpdate, setSelectedSubmissionForUpdate] = useState(null);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
   
   // Custom hooks
   const auth = useAuth();
@@ -53,6 +58,50 @@ const Reports = () => {
   useEffect(() => {
     if (reportsData.reports.length > 0 && !selectedReport) {
       setSelectedReport(reportsData.reports[0]);
+    }
+  }, [reportsData.reports, selectedReport]);
+
+  // Update selectedReport when reports data changes (e.g., after adding photos)
+  useEffect(() => {
+    if (selectedReport && reportsData.reports.length > 0) {
+      // Find the updated report with the same submission_id
+      const updatedReport = reportsData.reports.find(
+        report => report.submission_id === selectedReport.submission_id
+      );
+      if (updatedReport) {
+        const oldPosition = reportsData.reports.findIndex(r => r.submission_id === selectedReport.submission_id);
+        const newPosition = reportsData.reports.findIndex(r => r.submission_id === updatedReport.submission_id);
+        
+        console.log('Updating selectedReport with fresh data:', {
+          oldImageCount: selectedReport.image_count,
+          newImageCount: updatedReport.image_count,
+          oldImagesLength: selectedReport.images?.length,
+          newImagesLength: updatedReport.images?.length,
+          oldPosition: oldPosition + 1,
+          newPosition: newPosition + 1,
+          movedToTop: newPosition === 0
+        });
+        
+        setSelectedReport(updatedReport);
+        
+        // Reset to first image if the number of images changed
+        if (updatedReport.images && updatedReport.images.length !== selectedReport.images?.length) {
+          console.log('Resetting to first image due to image count change');
+          setCurrentResultIndex(0);
+        }
+        
+        // If the submission moved to the top, show a brief visual indicator
+        if (newPosition === 0 && oldPosition > 0) {
+          console.log('Submission moved to top position - this is now the most recent');
+          setShowUpdateNotification(true);
+          // Hide notification after 3 seconds
+          setTimeout(() => {
+            setShowUpdateNotification(false);
+          }, 3000);
+        }
+      } else {
+        console.warn('Could not find updated report for submission_id:', selectedReport.submission_id);
+      }
     }
   }, [reportsData.reports, selectedReport]);
 
@@ -93,6 +142,56 @@ const Reports = () => {
       const prevPage = Math.max(0, currentPage - 1);
       const firstIndexOfPrevPage = prevPage * 7;
       setCurrentResultIndex(firstIndexOfPrevPage);
+    }
+  };
+
+  const handleAddPhotosToSubmission = (report) => {
+    setSelectedSubmissionForUpdate(report);
+    setShowAddPhotosModal(true);
+  };
+
+  const closeAddPhotosModal = () => {
+    setShowAddPhotosModal(false);
+    setSelectedSubmissionForUpdate(null);
+  };
+
+  const handleAddPhotosSubmit = async (files) => {
+    if (!selectedSubmissionForUpdate || !files || files.length === 0) {
+      return;
+    }
+
+    setIsUploadingPhotos(true);
+    try {
+      // Import the uploadImages function
+      const { uploadImages } = await import('../services/api');
+      
+      // Upload images with the existing submission ID
+      const result = await uploadImages(files, selectedSubmissionForUpdate.submission_id);
+      
+      console.log('Photos added to submission:', result);
+      
+      // Close the modal first
+      closeAddPhotosModal();
+      
+      // Show success message
+      alert(`Successfully added ${result.successful_uploads} photo(s) to the submission!`);
+      
+      // Refresh immediately to get the updated submission data
+      console.log('Refreshing reports immediately after adding photos...');
+      reportsData.refreshReports();
+      
+      // Also refresh after a delay to catch any async processing (but don't show loading)
+      setTimeout(() => {
+        console.log('Refreshing reports after delay to catch async processing...');
+        // Use silent refresh to avoid showing loading screen again
+        reportsData.silentRefreshReports();
+      }, 3000); // 3 second delay to allow backend processing
+      
+    } catch (error) {
+      console.error('Error adding photos to submission:', error);
+      alert(`Failed to add photos: ${error.message}`);
+    } finally {
+      setIsUploadingPhotos(false);
     }
   };
 
@@ -329,6 +428,19 @@ const Reports = () => {
           onMenuToggle={() => setIsMenuOpen(!isMenuOpen)}
         />
 
+        {/* Update Notification */}
+        {showUpdateNotification && (
+          <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-lg border border-emerald-500/50 animate-pulse">
+            <div className="flex items-center space-x-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="font-semibold">Submission Updated!</span>
+              <span className="text-sm">This submission is now the most recent.</span>
+            </div>
+          </div>
+        )}
+
         {/* Main Content */}
         <div className="flex-1 flex h-screen">
           {/* Sidebar - Search History */}
@@ -404,7 +516,7 @@ const Reports = () => {
                         <p className="text-slate-400 text-xs">
                           Avg confidence: {(report.average_confidence * 100).toFixed(1)}%
                         </p>
-                        <div className="flex items-center mt-1">
+                        <div className="flex items-center justify-between mt-1">
                           <span className={`text-xs px-2 py-1 rounded ${
                             report.status === 'completed' ? 'bg-green-600/20 text-green-400' :
                             report.status === 'processing' ? 'bg-yellow-600/20 text-yellow-400' :
@@ -416,6 +528,16 @@ const Reports = () => {
                              report.status === 'failed' ? 'Failed' :
                              report.status}
                           </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddPhotosToSubmission(report);
+                            }}
+                            className="text-xs px-2 py-1 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 hover:text-emerald-300 rounded transition-colors"
+                            title="Add more photos to this submission"
+                          >
+                            + Add Photos
+                          </button>
                         </div>
                       </div>
                     ) : (
@@ -678,6 +800,14 @@ const Reports = () => {
         onClose={() => setShowInputModal(false)}
         imageSrc={selectedReport?.images?.[currentResultIndex]?.inputImage}
         imageName={selectedReport?.images?.[currentResultIndex]?.input_name}
+      />
+
+      <AddPhotosModal
+        isOpen={showAddPhotosModal}
+        onClose={closeAddPhotosModal}
+        onSubmit={handleAddPhotosSubmit}
+        isLoading={isUploadingPhotos}
+        submissionInfo={selectedSubmissionForUpdate}
       />
     </div>
   );

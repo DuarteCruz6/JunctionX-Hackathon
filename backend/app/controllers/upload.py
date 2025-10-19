@@ -79,7 +79,7 @@ async def upload_images(
                 submission_data = {
                     "user_id": user_id,
                     "status": "processing",
-                    "image_count": len(files),
+                    "image_count": 0,  # Start with 0, will be updated with actual successful uploads
                     "total_detected_areas": 0,
                     "average_confidence": 0.0,
                     "image_ids": [],
@@ -97,6 +97,9 @@ async def upload_images(
                     detail=f"Failed to create submission: {str(e)}"
                 )
 
+    # Track successful uploads for batch update
+    successful_image_ids = []
+    
     for file in files:
         logger.info(f"Processing file: {file.filename} (type: {file.content_type})")
 
@@ -139,12 +142,8 @@ async def upload_images(
             await save_image_metadata(image_id, metadata)
             logger.info(f"File {file.filename} uploaded successfully as {image_id}")
             
-            # Add image to submission
-            if submission_id:
-                await update_submission(submission_id, {
-                    "image_ids": firestore.ArrayUnion([image_id]),
-                    "image_count": firestore.Increment(1)
-                })
+            # Track successful upload
+            successful_image_ids.append(image_id)
 
             # Auto-process the image after upload
             try:
@@ -168,6 +167,22 @@ async def upload_images(
         except Exception as e:
             logger.error(f"Upload failed for {file.filename}: {e}")
             error_files.append({"filename": file.filename, "reason": f"Upload failed: {str(e)}"})
+
+    # Batch update submission with all successful uploads
+    if submission_id:
+        if successful_image_ids:
+            await update_submission(submission_id, {
+                "image_ids": firestore.ArrayUnion(successful_image_ids),
+                "image_count": firestore.Increment(len(successful_image_ids)),
+                "updated_at": datetime.now().isoformat()
+            })
+            logger.info(f"Updated submission {submission_id} with {len(successful_image_ids)} new images")
+        else:
+            # No successful uploads, just update the timestamp
+            await update_submission(submission_id, {
+                "updated_at": datetime.now().isoformat()
+            })
+            logger.info(f"Updated submission {submission_id} timestamp (no successful uploads)")
 
     if error_files:
         logger.warning(f"Some files failed: {error_files}")

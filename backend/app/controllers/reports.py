@@ -48,11 +48,14 @@ async def get_user_reports(
             submission_with_images = await get_submission_with_images(submission['submission_id'], user_id)
             
             if submission_with_images:
+                # Use updated_at if available, otherwise fall back to created_at
+                display_date = submission.get("updated_at", submission["created_at"])
+                
                 report = {
                     "id": i + 1,
                     "submission_id": submission["submission_id"],
-                    "date": format_date(submission["created_at"]),
-                    "time": format_time(submission["created_at"]),
+                    "date": format_date(display_date),
+                    "time": format_time(display_date),
                     "image_count": submission.get("image_count", 0),
                     "total_detected_areas": submission.get("total_detected_areas", 0),
                     "average_confidence": submission.get("average_confidence", 0.0),

@@ -325,19 +325,20 @@ class FirebaseDB:
             
             # Sort in Python instead of Firestore to avoid index requirement
             def get_sort_key(submission):
-                created_at = submission.get('created_at')
-                if hasattr(created_at, 'timestamp'):
+                # Use updated_at if available, otherwise fall back to created_at
+                sort_date = submission.get('updated_at', submission.get('created_at'))
+                if hasattr(sort_date, 'timestamp'):
                     # Firestore datetime object
-                    return created_at.timestamp()
-                elif isinstance(created_at, str):
+                    return sort_date.timestamp()
+                elif isinstance(sort_date, str):
                     # ISO string
                     try:
-                        return datetime.fromisoformat(created_at.replace('Z', '+00:00')).timestamp()
+                        return datetime.fromisoformat(sort_date.replace('Z', '+00:00')).timestamp()
                     except:
                         return 0
-                elif isinstance(created_at, datetime):
+                elif isinstance(sort_date, datetime):
                     # Python datetime object
-                    return created_at.timestamp()
+                    return sort_date.timestamp()
                 else:
                     return 0
             

@@ -17,8 +17,11 @@ export const useReportsData = (isLoggedIn) => {
     setError(null);
 
     try {
+      console.log('fetchReports: Starting API call...');
       const response = await getUserReports();
+      console.log('fetchReports: API response received:', response);
       if (response.success) {
+        console.log('fetchReports: Setting reports data:', response.reports?.length || 0, 'reports');
         setReports(response.reports || []);
         setLastFetchTime(new Date());
       } else {
@@ -34,8 +37,37 @@ export const useReportsData = (isLoggedIn) => {
   }, [isLoggedIn]);
 
   const refreshReports = useCallback(() => {
+    console.log('refreshReports called - fetching fresh data...');
     fetchReports();
   }, [fetchReports]);
+
+  const silentRefreshReports = useCallback(async () => {
+    console.log('silentRefreshReports called - fetching fresh data without loading screen...');
+    if (!isLoggedIn) {
+      setReports([]);
+      return;
+    }
+
+    setError(null);
+
+    try {
+      console.log('silentRefreshReports: Starting API call...');
+      const response = await getUserReports();
+      console.log('silentRefreshReports: API response received:', response);
+      if (response.success) {
+        console.log('silentRefreshReports: Setting reports data:', response.reports?.length || 0, 'reports');
+        setReports(response.reports || []);
+        setLastFetchTime(new Date());
+      } else {
+        throw new Error(response.message || 'Failed to fetch reports');
+      }
+    } catch (err) {
+      console.error('Error in silent refresh:', err);
+      setError(err.message);
+      setReports([]);
+    }
+    // Note: We don't set isLoading here to avoid showing loading screen
+  }, [isLoggedIn]);
 
   const processPendingImages = useCallback(async (report) => {
     if (!report || !report.images) return;
@@ -169,6 +201,7 @@ export const useReportsData = (isLoggedIn) => {
     lastFetchTime,
     fetchReports,
     refreshReports,
+    silentRefreshReports,
     addNewReport,
     processPendingImages
   };
