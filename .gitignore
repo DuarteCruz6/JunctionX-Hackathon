@@ -6,3 +6,5 @@ junctionx-hackathon-firebase-adminsdk-fbsvc-b9ad2c64f0.json
 venv
 __pycache__
 *.log
+backend/core/data/fotos_invasoras
+backend/core/data/processed_acacia_dataset
