@@ -16,7 +16,7 @@ class HuggingFaceML:
     
     def __init__(self):
         self.api_token = os.getenv('HF_API_TOKEN')
-        self.model_name = os.getenv('HF_MODEL_NAME', 'HUGGINGFACE_MODEL_ID')
+        self.model_name = os.getenv('HUGGINGFACE_MODEL_ID')
         self.api_url = f"https://api-inference.huggingface.co/models/{self.model_name}"
         
         if not self.api_token:
