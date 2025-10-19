@@ -152,7 +152,14 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
     event.target.value = '';
   };
 
-  const handleProcessImages = async () => {
+  const handleProcessImages = async (options = {}) => {
+    const { newSubmission = false } = options;
+
+    if (newSubmission) {
+      setProcessedResults([]);
+      setCurrentSubmissionId(null);
+    }
+
     setIsLoading(true);
     setIsUploading(false);
     setUploadError(null);
@@ -160,7 +167,7 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
     try {
       if (isLoggedIn) {
         // Authenticated flow - upload to server and save results
-        await handleAuthenticatedProcessing();
+        await handleAuthenticatedProcessing({ newSubmission });
       } else {
         // Anonymous flow - analyze without saving
         await handleAnonymousProcessing();
@@ -179,7 +186,8 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
     }
   };
 
-  const handleAuthenticatedProcessing = async () => {
+  const handleAuthenticatedProcessing = async (options = {}) => {
+    const { newSubmission = false } = options;
     // First, upload all selected images that haven't been uploaded yet
     const imagesToUpload = selectedImages.filter(img => !img.uploaded);
     
@@ -190,10 +198,10 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
       const filesToUpload = imagesToUpload.map(img => img.file);
       
       // Check if we should reuse existing submission or create new one
-      const shouldReuseSubmission = currentSubmissionId !== null;
-      console.log(`Should reuse submission: ${shouldReuseSubmission}, currentSubmissionId: ${currentSubmissionId}`);
+      const submissionIdToUse = newSubmission ? null : currentSubmissionId;
+      console.log(`Processing with submissionId: ${submissionIdToUse}`);
       
-      const uploadResponse = await uploadImages(filesToUpload, shouldReuseSubmission ? currentSubmissionId : null);
+      const uploadResponse = await uploadImages(filesToUpload, submissionIdToUse);
       
       if (uploadResponse.success && uploadResponse.results) {
         // Store the submission ID if this is a new submission
@@ -398,7 +406,7 @@ export const useImageProcessing = (onImagesUploaded, isLoggedIn = false) => {
       URL.revokeObjectURL(image.preview);
     });
     setSelectedImages([]);
-    setProcessedResults([]);
+    setProcessedResults([]); // Also clear processed results on clear all
     setCurrentResultIndex(0);
     setUploadError(null);
     setCurrentSubmissionId(null);

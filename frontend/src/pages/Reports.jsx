@@ -439,13 +439,13 @@ const Reports = () => {
         )}
 
         {/* Main Content */}
-        <div className="flex-1 flex h-screen">
+        <div className="flex-1 flex overflow-hidden">
           {/* Sidebar - Search History */}
-          <div className={`bg-slate-800/90 backdrop-blur-md border-r border-slate-700/50 transition-all duration-300 ${
+          <div className={`bg-slate-800/90 backdrop-blur-md border-r border-slate-700/50 transition-all duration-300 flex flex-col ${
             isSidebarCollapsed ? 'w-16' : 'w-80'
           }`}>
             {/* Sidebar Header */}
-            <div className="p-4 border-b border-slate-700/50">
+            <div className="p-4 border-b border-slate-700/50 flex-shrink-0">
               <div className="flex items-center justify-between">
                 {!isSidebarCollapsed && (
                   <h2 className="text-xl font-bold text-white">Search History</h2>
@@ -462,7 +462,7 @@ const Reports = () => {
             </div>
 
             {/* Search History List */}
-            <div className="overflow-y-auto h-full pb-20">
+            <div className="overflow-y-auto flex-1">
               {reportsData.error && (
                 <div className="p-4 m-4 bg-red-900/50 border border-red-500/50 rounded-lg">
                   <div className="text-red-400 text-sm">
