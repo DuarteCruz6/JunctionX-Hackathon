@@ -141,7 +141,7 @@ const Demo = ({
                           : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-105'
                       }`}
                     >
-                      {isUploading ? 'Uploading Images...' : isLoading ? 'Processing...' : 'Upload & Process Images'}
+                      {isUploading ? 'AI analysing pictures...' : isLoading ? 'Processing...' : 'Upload & Process Images'}
                     </button>
                     {selectedImages.length > 0 && (
                       <p className="text-sm text-slate-400 mt-2">

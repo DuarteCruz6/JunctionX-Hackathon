@@ -173,9 +173,6 @@ const Reports = () => {
       // Close the modal first
       closeAddPhotosModal();
       
-      // Show success message
-      alert(`Successfully added ${result.successful_uploads} photo(s) to the submission!`);
-      
       // Refresh immediately to get the updated submission data
       console.log('Refreshing reports immediately after adding photos...');
       reportsData.refreshReports();
