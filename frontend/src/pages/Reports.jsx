@@ -10,6 +10,7 @@ import ImageModal from '../components/modals/ImageModal';
 import AddPhotosModal from '../components/modals/AddPhotosModal';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import PhotoNavigation from '../components/ui/PhotoNavigation';
+import SubmissionTimelineSlider from '../components/ui/SubmissionTimelineSlider';
 
 // Hooks
 import { useAuth } from '../hooks/useAuth';
@@ -32,6 +33,7 @@ const Reports = () => {
   const [selectedSubmissionForUpdate, setSelectedSubmissionForUpdate] = useState(null);
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
+  const [viewMode, setViewMode] = useState('detailed'); // 'detailed' or 'timeline'
   
   // Custom hooks
   const auth = useAuth();
@@ -153,6 +155,16 @@ const Reports = () => {
   const closeAddPhotosModal = () => {
     setShowAddPhotosModal(false);
     setSelectedSubmissionForUpdate(null);
+  };
+
+  const handleTimelineSubmissionSelect = (reportId) => {
+    // Find the report by ID and select it
+    const report = reportsData.reports.find(r => r.id === reportId);
+    if (report) {
+      setSelectedReport(report);
+      setCurrentResultIndex(0);
+      setViewMode('detailed'); // Switch to detailed view
+    }
   };
 
   const handleAddPhotosSubmit = async (files) => {
@@ -565,15 +577,40 @@ const Reports = () => {
                     <h1 className="text-3xl font-bold text-white">
                       Acacia Detection Report
                     </h1>
-                    <button
-                      onClick={() => navigate('/')}
-                      className="inline-flex items-center text-emerald-400 hover:text-emerald-300 transition-colors"
-                    >
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Back to Home Page
-                    </button>
+                    <div className="flex items-center space-x-4">
+                      {/* View Mode Toggle */}
+                      <div className="flex bg-slate-700/50 rounded-lg p-1">
+                        <button
+                          onClick={() => setViewMode('detailed')}
+                          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            viewMode === 'detailed'
+                              ? 'bg-emerald-600 text-white'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Detailed View
+                        </button>
+                        <button
+                          onClick={() => setViewMode('timeline')}
+                          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            viewMode === 'timeline'
+                              ? 'bg-emerald-600 text-white'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Timeline View
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => navigate('/')}
+                        className="inline-flex items-center text-emerald-400 hover:text-emerald-300 transition-colors"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back to Home Page
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center space-x-6 text-slate-300">
                     <span className="flex items-center">
@@ -591,8 +628,16 @@ const Reports = () => {
                   </div>
                 </div>
 
-                {/* Results Display - Same as Demo Component */}
-                <div className="bg-slate-800/70 backdrop-blur-md rounded-lg p-8 border border-slate-600/50">
+                {/* Conditional Content Display */}
+                {viewMode === 'timeline' ? (
+                  <SubmissionTimelineSlider
+                    reports={reportsData.reports}
+                    onSubmissionSelect={handleTimelineSubmissionSelect}
+                    selectedReportId={selectedReport?.id}
+                  />
+                ) : (
+                  /* Results Display - Same as Demo Component */
+                  <div className="bg-slate-800/70 backdrop-blur-md rounded-lg p-8 border border-slate-600/50">
                   {/* Results Header */}
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-white">Analysis Results</h2>
@@ -751,15 +796,16 @@ const Reports = () => {
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center text-slate-400">
-                  <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <p className="text-lg">Select a report from the history to view details</p>
-                </div>
+              <div className="p-8">
+                {/* Show timeline slider when no specific report is selected */}
+                <SubmissionTimelineSlider
+                  reports={reportsData.reports}
+                  onSubmissionSelect={handleTimelineSubmissionSelect}
+                  selectedReportId={null}
+                />
               </div>
             )}
           </div>
