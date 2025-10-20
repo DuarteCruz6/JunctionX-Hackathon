@@ -22,13 +22,12 @@ const Hero = ({ onDemoClick, onReportsClick }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full relative z-10">
         <div className="text-center">
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 drop-shadow-2xl">
-            National
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 drop-shadow-lg">
-              Forest Protection
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 drop-shadow-lg">
+              Forest Sentinel
             </span>
           </h1>
           <p className="text-xl text-slate-200 mb-8 max-w-3xl mx-auto drop-shadow-lg">
-            Advanced AI-powered monitoring system for invasive species detection and forest conservation. 
+            AI-powered monitoring system for invasive species detection and forest conservation. 
             Protecting our natural heritage through cutting-edge technology and scientific research.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

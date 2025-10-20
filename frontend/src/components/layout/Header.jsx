@@ -21,7 +21,7 @@ const Header = ({
                 onClick={() => navigate('/')}
                 className="text-2xl font-bold text-white hover:text-emerald-400 transition-colors cursor-pointer"
               >
-                <span className="text-emerald-400"></span> Chega dAcacias
+                <span className="text-emerald-400">Forest Sentinel</span>
               </button>
             </div>
           </div>
@@ -41,7 +41,7 @@ const Header = ({
                 }}
                 className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
-                Services
+                The Problem
               </button>
               <button 
                 onClick={() => navigate('/public-demo')}

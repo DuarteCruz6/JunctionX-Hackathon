@@ -110,7 +110,7 @@ const AcaciaSearch = () => {
                 </span>
               </h1>
               <p className="text-xl text-slate-200 mb-8 max-w-3xl mx-auto drop-shadow-lg">
-                Advanced AI-powered search engine for Acacia species identification, 
+                AI-powered search engine for Acacia species identification, 
                 management protocols, and forest conservation data.
               </p>
             </div>
@@ -149,6 +149,7 @@ const AcaciaSearch = () => {
           isLoading={imageProcessing.isLoading}
           isUploading={imageProcessing.isUploading}
           uploadError={imageProcessing.uploadError}
+          isLoggedIn={auth.isLoggedIn}
           />
         </div>
 
