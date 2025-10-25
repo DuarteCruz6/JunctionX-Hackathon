@@ -1,6 +1,8 @@
 # TheThreeMusketers
 Repository containing the code for JunctionX Lisbon Hackathon.
 
+## Final Result: Winners of the competition, we are going to Finland 🥳
+
 ---
 
 # Forest Guardian: Acacia Detection & Mapping
@@ -331,7 +333,10 @@ TheThreeMusketers/
 - **ML Model:** YOLOv8-seg (Ultralytics), Hugging Face API
 
 ## Results
-- Add results here
+- 1st Place General
+- 1st Place Peer Review
+- 2nd Place Partners Review
+- 3rd Place JunctionX Collaborators Review
 
 ## Future Improvements:
 - Interactive map overlays with Leaflet or Mapbox
