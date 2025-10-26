@@ -24,7 +24,7 @@ def create_data_yaml(dest_dir: Path, class_names):
 
     yaml_content = {
         'path': str(dest_dir.resolve()),  # absolute path to dataset
-        'train': 'images/test',
+        'train': 'images/train',
         'val': 'images/val',
         'nc': len(class_names),
         'names': {i: name for i, name in enumerate(class_names)}
@@ -78,8 +78,8 @@ def main():
     print(f"📊 Splitting data: {len(test_pairs)} test, {len(val_pairs)} validation")
 
     # --- 4. Create destination directories ---
-    dest_img_test_path = Path(DEST_DIR) / 'images' / 'test'
-    dest_lbl_test_path = Path(DEST_DIR) / 'labels' / 'test'
+    dest_img_test_path = Path(DEST_DIR) / 'images' / 'train'
+    dest_lbl_test_path = Path(DEST_DIR) / 'labels' / 'train'
     dest_img_val_path = Path(DEST_DIR) / 'images' / 'val'
     dest_lbl_val_path = Path(DEST_DIR) / 'labels' / 'val'
 
@@ -94,12 +94,12 @@ def main():
             shutil.copy(lbl_src, dest_lbl / Path(lbl_src).name)
         print(f"✅ Copied {len(pairs)} pairs to '{set_name}'")
 
-    copy_files(test_pairs, dest_img_test_path, dest_lbl_test_path, "test")
+    copy_files(test_pairs, dest_img_test_path, dest_lbl_test_path, "train")
     copy_files(val_pairs, dest_img_val_path, dest_lbl_val_path, "validation")
 
     print("\n✨ Reorganization complete! ✨")
-    print(f"Test Images: {len(list(dest_img_test_path.iterdir()))}")
-    print(f"Test Labels: {len(list(dest_lbl_test_path.iterdir()))}")
+    print(f"Train Images: {len(list(dest_img_test_path.iterdir()))}")
+    print(f"Train Labels: {len(list(dest_lbl_test_path.iterdir()))}")
     print(f"Val Images:  {len(list(dest_img_val_path.iterdir()))}")
     print(f"Val Labels:  {len(list(dest_lbl_val_path.iterdir()))}")
     
