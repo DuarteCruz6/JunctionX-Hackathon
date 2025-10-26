@@ -8,3 +8,6 @@ __pycache__
 *.log
 backend/core/data/fotos_invasoras
 backend/core/data/processed_acacia_dataset
+backend/core/ml_model_final/data_stuff/data
+backend/core/ml_model_final/data_stuff/reorganized_dataset
+backend/core/ml_model_final/data_stuff/shapes
