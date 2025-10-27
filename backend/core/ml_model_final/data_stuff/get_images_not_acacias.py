@@ -33,6 +33,9 @@ MAX_FRAME_SIZE_DEGREES = 0.5
 DPI = 200
 MAX_WORKERS = os.cpu_count() or 4 # Use all CPU cores, or fallback to 4
 
+# --- Limit number of images ---
+MAX_IMAGES = 3000  # <-- Set this to how many images you want. Use None or 0 for no limit.
+
 # --- Function to process a single frame (for parallel execution) ---
 def process_frame(frame_data):
     feature_id, i_frame, f_minx, f_miny, f_maxx, f_maxy, crs_str, filename_prefix_str = frame_data
@@ -72,13 +75,12 @@ if __name__ == "__main__":
         print("Reprojecting GeoDataFrame to EPSG:3857.")
         world = world.to_crs(epsg=3857)
 
-    # --- NEW FILTERING LOGIC ---
+    # --- Filtering logic ---
     print(f"Filtering for areas where '{INCLUDE_COLUMN}' is '{INCLUDE_VALUE}' AND '{EXCLUDE_COLUMN}' is NOT '{EXCLUDE_VALUE}'...")
     
     condition1 = (world[INCLUDE_COLUMN] == INCLUDE_VALUE)
     condition2 = (world[EXCLUDE_COLUMN] != EXCLUDE_VALUE)
     
-    # Combine the conditions with a logical AND (&)
     target_areas = world[condition1 & condition2]
 
     if target_areas.empty:
@@ -134,7 +136,11 @@ if __name__ == "__main__":
             for i_frame, (f_minx, f_miny, f_maxx, f_maxy) in enumerate(frames_for_feature):
                 all_frames_data.append((feature_id, i_frame, f_minx, f_miny, f_maxx, f_maxy, world.crs.to_string(), FILENAME_PREFIX))
         
-        print(f"Collected {len(all_frames_data)} frames for processing using up to {MAX_WORKERS} workers.")
+        # --- Apply MAX_IMAGES limit ---
+        if MAX_IMAGES is not None and MAX_IMAGES > 0:
+            all_frames_data = all_frames_data[:MAX_IMAGES]
+
+        print(f"Processing {len(all_frames_data)} frames using up to {MAX_WORKERS} workers.")
         
         image_count = 0
         with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:

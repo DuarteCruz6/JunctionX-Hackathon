@@ -90,8 +90,8 @@ else:
         for i_frame, (f_minx, f_miny, f_maxx, f_maxy) in enumerate(frames_for_feature):
             fig, ax = plt.subplots(figsize=(10, 10))
             
-            # Set the background to white (value 0, "not acacia")
-            ax.set_facecolor('white')
+            # Set the background to black (value 0, "not acacia")
+            ax.set_facecolor('black')
 
             # Set the view to the calculated frame
             ax.set_xlim(f_minx, f_maxx)
@@ -101,16 +101,16 @@ else:
             # Find all "Acacia" polygons that are visible in this frame
             visible_acacia = target_areas.cx[f_minx:f_maxx, f_miny:f_maxy]
 
-            # Plot the visible polygons in solid black (value 1, "acacia")
+            # Plot the visible polygons in white (value 1, "acacia")
             if not visible_acacia.empty:
-                visible_acacia.plot(ax=ax, facecolor='black', edgecolor='black')
+                visible_acacia.plot(ax=ax, facecolor='white', edgecolor='white')
 
             # Turn off all axes, borders, and labels for a clean image
             ax.axis('off')
 
             # Save the figure
             filename = os.path.join(OUTPUT_DIR, f'{ATTRIBUTE_COLUMN}_{TARGET_VALUE}_{feature_id}_frame_{i_frame+1}.png')
-            plt.savefig(filename, dpi=DPI, bbox_inches='tight', pad_inches=0)
+            plt.savefig(filename, dpi=DPI, bbox_inches='tight', pad_inches=0, facecolor='black')
             plt.close(fig) # Close the figure to free memory
             
             image_count += 1
