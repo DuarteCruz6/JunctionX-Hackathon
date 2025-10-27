@@ -30,4 +30,4 @@ for filename in os.listdir(NO_ACACIA_FOLDER):
         save_path = os.path.join(OUTPUT_DIR, mask_filename)
         create_black_mask(src_path, save_path)
 
-print(f"White masks created in '{OUTPUT_DIR}' for {len(os.listdir(NO_ACACIA_FOLDER))} images.")
+print(f"Black masks created in '{OUTPUT_DIR}' for {len(os.listdir(NO_ACACIA_FOLDER))} images.")
