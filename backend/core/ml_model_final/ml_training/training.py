@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from ultralytics import YOLO
 from huggingface_hub import login, snapshot_download
+from huggingface_hub import HfApi, HfFolder, Repository
 
 # --- 1. Load environment variables ---
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '.env')
@@ -63,11 +64,19 @@ print(f"📦 Loading best model from: {best_model_path}")
 model = YOLO(best_model_path)
 
 print(f"🚀 Exporting and pushing model to Hugging Face Hub repo: {hub_model_id} ...")
-model.export(
+try: model.export(
     format="huggingface",
     hub_model_id=hub_model_id,
     token=hf_token
 )
+except:
+    api = HfApi()
+    api.upload_file(
+        path_or_fileobj="runs/segment/acacia_seg_model8/weights/best.pt",
+        path_in_repo="best.pt",
+        repo_id=hub_model_id,
+        token=hf_token
+    )
 
 print("🎉 Successfully exported and pushed model to Hugging Face Hub!")
 print(f"👉 View it here: https://huggingface.co/{hub_model_id}")
