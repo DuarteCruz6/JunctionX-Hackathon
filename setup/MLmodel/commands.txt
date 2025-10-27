@@ -28,7 +28,7 @@ git push
 
 import requests
 
-API_URL = "https://api-inference.huggingface.co/models/your-username/forest-guardian-yolov8-seg"
+API_URL = "https://router.huggingface.co/hf-inference/models/your-username/forest-guardian-yolov8-seg"
 headers = {"Authorization": f"Bearer {YOUR_HF_API_TOKEN}"}
 
 def query(image_path):
@@ -45,7 +45,7 @@ print(result)
 import requests
 import os
 
-HF_API_URL = "https://api-inference.huggingface.co/models/your-username/forest-guardian-yolov8-seg"
+HF_API_URL = "https://router.huggingface.co/hf-inference/models/your-username/forest-guardian-yolov8-seg"
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
 
 def run_inference(image_path):
