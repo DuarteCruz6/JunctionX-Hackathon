@@ -1,8 +1,8 @@
 task: segment
 mode: train
 model: yolov8n-seg.pt
-data: c:\Users\danim\OneDrive\Ambiente de Trabalho\JunctionX-Hackathon\backend\core\ml_model_new\cloned-dataset\data.yaml
-epochs: 100
+data: /Users/duartecruz/Desktop/junctionX hackathon/TheThreeMusketers/backend/core/ml_model_final/data_stuff/reorganized_dataset/data.yaml
+epochs: 1
 time: null
 patience: 100
 batch: 16
@@ -103,4 +103,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: botsort.yaml
-save_dir: C:\Users\danim\OneDrive\Ambiente de Trabalho\JunctionX-Hackathon\runs\segment\acacia_seg_model3
+save_dir: /Users/duartecruz/Desktop/junctionX hackathon/TheThreeMusketers/runs/segment/acacia_seg_model3
