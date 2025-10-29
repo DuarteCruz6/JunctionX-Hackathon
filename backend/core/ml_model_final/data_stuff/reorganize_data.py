@@ -14,7 +14,6 @@ RANDOM_SEED = 42
 
 # Mapping of image folders to mask folders
 CLASS_FOLDERS = {
-    'not_acacias': ('images_not_acacias', 'masks_not_acacias'),
     'acacias': ('images_acacias', 'masks_acacias')
 }
 
@@ -23,12 +22,11 @@ def create_data_yaml(dest_dir: Path, class_names):
     yaml_path = dest_dir / "data.yaml"
 
     yaml_content = {
-        'path': str(dest_dir.resolve()),  # absolute path to dataset
+        'path': 'TODO: UPDATE THIS VALUE',
         'train': 'images/train',
         'val': 'images/val',
         'nc': len(class_names),
         'names': {i: name for i, name in enumerate(class_names)},
-        'mask': 'labels'
     }
 
     with open(yaml_path, 'w') as f:

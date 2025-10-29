@@ -55,7 +55,7 @@ def upload_dataset():
     
 def upload_readme(text: str):
     """Create and upload README.md to HF Hub."""
-    readme_path = Path("README.md")
+    readme_path = Path("tmp/README.md")
     with open(readme_path, "w") as f:
         f.write(text)
 
