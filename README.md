@@ -3,6 +3,9 @@ Repository containing the code for JunctionX Lisbon Hackathon.
 
 ## Final Result: Winners of the competition, we are going to Finland 🥳
 
+## Press
+https://tecnico.ulisboa.pt/pt/noticias/campus-e-comunidade/inteligencia-artificial-financas-e-sociedade-tecnico-recebeu-estreia-da-hackaton-junctionx-em-portugal/
+
 ---
 
 # Forest Guardian: Acacia Detection & Mapping
