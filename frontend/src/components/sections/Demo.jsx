@@ -31,7 +31,8 @@ const Demo = ({
   onRemoveImage,
   isLoading,
   isUploading,
-  uploadError
+  uploadError,
+  isLoggedIn
 }) => {
   return (
     <section id="demo" className="py-20 bg-slate-900/60 backdrop-blur-sm">
@@ -132,17 +133,48 @@ const Demo = ({
                     </div>
                   )}
                   <div className="text-center">
-                    <button 
-                      onClick={onProcessImages}
-                      disabled={isLoading || isUploading}
-                      className={`px-8 py-3 rounded-lg text-lg font-semibold transition-all transform ${
-                        isLoading || isUploading
-                          ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
-                          : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-105'
-                      }`}
-                    >
-                      {isUploading ? 'AI analysing pictures...' : isLoading ? 'Processing...' : 'Upload & Process Images'}
-                    </button>
+                    {processedResults.length > 0 && isLoggedIn ? (
+                      <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                        <button 
+                          onClick={() => onProcessImages({ newSubmission: true })}
+                          disabled={isLoading || isUploading}
+                          className={`px-8 py-3 rounded-lg text-lg font-semibold transition-all transform ${
+                            isLoading || isUploading
+                              ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
+                              : 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105'
+                          }`}
+                        >
+                          {isLoading && 'Processing...'}
+                          {isUploading && 'Uploading...'}
+                          {!isLoading && !isUploading && 'Create New & Process'}
+                        </button>
+                        <button 
+                          onClick={() => onProcessImages()}
+                          disabled={isLoading || isUploading}
+                          className={`px-8 py-3 rounded-lg text-lg font-semibold transition-all transform ${
+                            isLoading || isUploading
+                              ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
+                              : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-105'
+                          }`}
+                        >
+                          {isLoading && 'Processing...'}
+                          {isUploading && 'Uploading...'}
+                          {!isLoading && !isUploading && 'Add & Process Images'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={onProcessImages}
+                        disabled={isLoading || isUploading}
+                        className={`px-8 py-3 rounded-lg text-lg font-semibold transition-all transform ${
+                          isLoading || isUploading
+                            ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-105'
+                        }`}
+                      >
+                        {isUploading ? 'AI analysing pictures...' : isLoading ? 'Processing...' : 'Upload & Process Images'}
+                      </button>
+                    )}
                     {selectedImages.length > 0 && (
                       <p className="text-sm text-slate-400 mt-2">
                         {selectedImages.filter(img => !img.uploaded).length} images ready to upload
